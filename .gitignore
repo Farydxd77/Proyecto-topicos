@@ -1,0 +1,32 @@
+# ---- Frontend (Node / Vite) ----
+node_modules/
+dist/
+dist-ssr/
+*.local
+.vite/
+
+# ---- Backend (Java / Maven) ----
+target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# ---- Entorno ----
+.env
+.env.local
+.env.*.local
+application-local.properties
+
+# ---- Editores / SO ----
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- Logs ----
+*.log
+npm-debug.log*
+logs/
+
+# NOTA: openspec/ SI se versiona. Los specs van a Git junto al codigo.
