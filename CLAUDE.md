@@ -80,6 +80,46 @@ Todas las tablas tienen created_at y updated_at (TIMESTAMP NOT NULL)
 - Un usuario siempre tiene exactamente un participante (1 a 1)
 - El pagador de un gasto absorbe los centavos sobrantes del redondeo
 
+## Seguridad
+- Todos los endpoints excepto /api/auth/** requieren JWT válido
+- JWT expira en 24 horas (86400000 ms)
+- Contraseñas hasheadas con BCrypt — nunca en texto plano
+- Un usuario solo accede a recursos de sus propios grupos
+- El token va en el header: Authorization: Bearer {token}
+
+## Respuestas HTTP estándar
+| Código | Cuándo usarlo |
+|--------|--------------|
+| 200 | Consulta exitosa |
+| 201 | Recurso creado (incluir recurso en body) |
+| 204 | Eliminación exitosa (sin body) |
+| 400 | Validación fallida |
+| 401 | Sin token o token inválido |
+| 403 | Token válido pero sin permisos |
+| 404 | Recurso no existe |
+| 409 | Conflicto (username duplicado, miembro ya existe) |
+
+## Formato de error estándar
+Siempre este JSON para cualquier error:
+```json
+{
+  "timestamp": "2025-09-01T10:00:00Z",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "El username ya está en uso",
+  "path": "/api/auth/register"
+}
+```
+
+## Lombok en entidades
+- Usar @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+- NUNCA @Data en entidades JPA con relaciones (causa StackOverflow)
+- Para herencia usar @SuperBuilder en lugar de @Builder
+
+## Idioma
+Todos los artefactos de OpenSpec (proposal.md, spec.md, design.md, tasks.md) 
+deben escribirse en español.
+
 ## Fuera de alcance
 - Frontend (fase 2)
 - Email, notificaciones

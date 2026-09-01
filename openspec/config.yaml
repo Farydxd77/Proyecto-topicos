@@ -12,25 +12,31 @@ context: |
 
 rules:
   proposal:
+    - Escribir en español
     - Describe solo lo que cambia en esta tarea, no el proyecto completo
     - Incluir siempre una sección Non-Goals con lo que NO hace esta tarea
   spec:
+    - Escribir en español
     - Usar formato Dado/Cuando/Entonces para cada escenario
     - Incluir casos borde explícitos
   design:
+    - Escribir en español
     - Incluir decisiones técnicas con alternativas descartadas
     - Referenciar el modelo de datos de CLAUDE.md
   tasks:
+    - Escribir en español
     - Una tarea = un archivo o una clase Java
     - Incluir verificación de compilación en cada tarea
 
 operations:
   apply:
     guidance:
+      - Escribir en español
       - Leer CLAUDE.md antes de generar cualquier código
       - PKs siempre BIGINT con IDENTITY, nunca UUID
       - Respetar la estructura de paquetes definida en CLAUDE.md
       - No crear archivos en frontend/
   archive:
     guidance:
+      - Escribir en español
       - Verificar que todos los checkboxes estén marcados antes de archivar
