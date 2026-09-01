@@ -1,32 +1,38 @@
-# ---- Frontend (Node / Vite) ----
-node_modules/
-dist/
-dist-ssr/
-*.local
-.vite/
+# ========================
+# Backend (Spring Boot / Maven)
+# ========================
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+backend/*.log
+backend/.env
 
-# ---- Backend (Java / Maven) ----
-target/
-*.class
-*.jar
-!.mvn/wrapper/maven-wrapper.jar
+# ========================
+# Frontend (React + Vite)
+# ========================
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
 
-# ---- Entorno ----
-.env
-.env.local
-.env.*.local
-application-local.properties
-
-# ---- Editores / SO ----
+# ========================
+# IDEs
+# ========================
 .idea/
 *.iml
+.vscode/
+*.suo
+*.user
+
+# ========================
+# Sistema operativo
+# ========================
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# ---- Logs ----
-*.log
-npm-debug.log*
-logs/
-
-# NOTA: openspec/ SI se versiona. Los specs van a Git junto al codigo.
+# ========================
+# Variables de entorno
+# ========================
+.env
+.env.local
+.env.production
