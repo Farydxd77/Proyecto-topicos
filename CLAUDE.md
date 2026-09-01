@@ -128,6 +128,17 @@ Siempre este JSON para cualquier error:
 - NO usar @Builder normal tampoco (no tienen herencia pero tampoco la necesitan por ahora)
 - NO usar @Data (tienen relaciones JPA)
 
+## Repositorios
+- Usar Query Methods de JPA para todas las consultas (sin @Query manual)
+- Retornar Optional<T> para consultas de un solo resultado
+- Retornar List<T> para consultas de múltiples resultados
+- Nunca retornar null — usar Optional<T> o List<T> vacío
+- Nombrar los métodos siguiendo la convención de Spring Data JPA:
+  findBy{Campo}(valor) → Optional<T>
+  findAllBy{Campo}(valor) → List<T>
+  existsBy{Campo}(valor) → boolean
+  deleteBy{Campo}(valor)
+
 ## Idioma
 Todos los artefactos de OpenSpec (proposal.md, spec.md, design.md, tasks.md) 
 deben escribirse en español.

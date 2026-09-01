@@ -8,6 +8,7 @@ context: |
   PKs: BIGINT autoincremental (BIGSERIAL en PostgreSQL, IDENTITY en JPA).
   ORM: Hibernate con ddl-auto=update (sin Flyway ni Liquibase).
   Seguridad: Spring Security + JWT (jjwt 0.12.6). Endpoints públicos: /api/auth/**
+  Repositorios: Query Methods JPA siempre. Optional<T> para un resultado, List<T> para varios. Sin @Query manual.
   Ver CLAUDE.md para modelo de datos completo, convenciones y fuera de alcance.
 
 rules:
