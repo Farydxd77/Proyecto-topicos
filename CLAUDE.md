@@ -116,6 +116,18 @@ Siempre este JSON para cualquier error:
 - NUNCA @Data en entidades JPA con relaciones (causa StackOverflow)
 - Para herencia usar @SuperBuilder en lugar de @Builder
 
+## Lombok en clases @Embeddable
+- Usar @Getter @Setter @NoArgsConstructor @AllArgsConstructor @EqualsAndHashCode
+- Implementar Serializable obligatoriamente
+- NO usar @SuperBuilder (no tienen herencia)
+- NO usar @Data (aunque @EqualsAndHashCode está permitido aquí porque no tienen relaciones JPA)
+
+## Lombok en entidades con @EmbeddedId
+- Usar @Getter @Setter @NoArgsConstructor @AllArgsConstructor
+- NO usar @SuperBuilder (no heredan de BaseEntity)
+- NO usar @Builder normal tampoco (no tienen herencia pero tampoco la necesitan por ahora)
+- NO usar @Data (tienen relaciones JPA)
+
 ## Idioma
 Todos los artefactos de OpenSpec (proposal.md, spec.md, design.md, tasks.md) 
 deben escribirse en español.

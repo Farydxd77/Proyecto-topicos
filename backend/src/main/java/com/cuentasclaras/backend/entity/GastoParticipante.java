@@ -10,9 +10,17 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "gasto_participantes")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class GastoParticipante {
 
     @EmbeddedId
@@ -30,36 +38,4 @@ public class GastoParticipante {
 
     @Column(name = "monto_adeudado", nullable = false, precision = 10, scale = 2)
     private BigDecimal montoAdeudado;
-
-    public GastoParticipanteId getId() {
-        return id;
-    }
-
-    public void setId(GastoParticipanteId id) {
-        this.id = id;
-    }
-
-    public Gasto getGasto() {
-        return gasto;
-    }
-
-    public void setGasto(Gasto gasto) {
-        this.gasto = gasto;
-    }
-
-    public Participante getParticipante() {
-        return participante;
-    }
-
-    public void setParticipante(Participante participante) {
-        this.participante = participante;
-    }
-
-    public BigDecimal getMontoAdeudado() {
-        return montoAdeudado;
-    }
-
-    public void setMontoAdeudado(BigDecimal montoAdeudado) {
-        this.montoAdeudado = montoAdeudado;
-    }
 }

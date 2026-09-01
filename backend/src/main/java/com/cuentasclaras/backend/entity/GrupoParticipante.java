@@ -12,9 +12,17 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "grupo_participantes")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class GrupoParticipante {
 
     @EmbeddedId
@@ -33,32 +41,4 @@ public class GrupoParticipante {
     @CreationTimestamp
     @Column(name = "joined_at", nullable = false, updatable = false)
     private LocalDateTime joinedAt;
-
-    public GrupoParticipanteId getId() {
-        return id;
-    }
-
-    public void setId(GrupoParticipanteId id) {
-        this.id = id;
-    }
-
-    public Grupo getGrupo() {
-        return grupo;
-    }
-
-    public void setGrupo(Grupo grupo) {
-        this.grupo = grupo;
-    }
-
-    public Participante getParticipante() {
-        return participante;
-    }
-
-    public void setParticipante(Participante participante) {
-        this.participante = participante;
-    }
-
-    public LocalDateTime getJoinedAt() {
-        return joinedAt;
-    }
 }
