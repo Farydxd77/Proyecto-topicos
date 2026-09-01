@@ -1,32 +1,36 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  Proyecto: Cuentas Claras — app para dividir gastos entre participantes de un viaje.
+  Monorepo: backend/ (Spring Boot 4.1.1, Java 21, Maven, PostgreSQL 17) y frontend/ (React + Vite, fase 2).
+  Fase actual: solo backend. No tocar frontend/.
+  Paquete base: com.cuentasclaras.backend
+  PKs: BIGINT autoincremental (BIGSERIAL en PostgreSQL, IDENTITY en JPA).
+  ORM: Hibernate con ddl-auto=update (sin Flyway ni Liquibase).
+  Seguridad: Spring Security + JWT (jjwt 0.12.6). Endpoints públicos: /api/auth/**
+  Ver CLAUDE.md para modelo de datos completo, convenciones y fuera de alcance.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+rules:
+  proposal:
+    - Describe solo lo que cambia en esta tarea, no el proyecto completo
+    - Incluir siempre una sección Non-Goals con lo que NO hace esta tarea
+  spec:
+    - Usar formato Dado/Cuando/Entonces para cada escenario
+    - Incluir casos borde explícitos
+  design:
+    - Incluir decisiones técnicas con alternativas descartadas
+    - Referenciar el modelo de datos de CLAUDE.md
+  tasks:
+    - Una tarea = un archivo o una clase Java
+    - Incluir verificación de compilación en cada tarea
 
-# Per-operation guidance (optional)
-# Add advisory guidance for how apply and archive work should be conducted.
-# This is separate from artifact rules above.
-# Example:
-#   operations:
-#     apply:
-#       guidance:
-#         - Keep test summaries concise
-#     archive:
-#       guidance:
-#         - Summarize the archive outcome before finishing
+operations:
+  apply:
+    guidance:
+      - Leer CLAUDE.md antes de generar cualquier código
+      - PKs siempre BIGINT con IDENTITY, nunca UUID
+      - Respetar la estructura de paquetes definida en CLAUDE.md
+      - No crear archivos en frontend/
+  archive:
+    guidance:
+      - Verificar que todos los checkboxes estén marcados antes de archivar

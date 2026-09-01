@@ -1,44 +1,32 @@
-# Project: Metrics Dashboard
+# Project: Cuentas Claras
 
 ## Overview
-
-This project is a simple frontend dashboard to display key metrics of a digital product.
-
-The goal is to create a clean and functional UI that can be used as a base for future features.
+App web para dividir gastos entre participantes de un viaje o evento.
+Monorepo con backend (Spring Boot + PostgreSQL) y frontend (React + Vite).
+Fase actual: backend únicamente.
 
 ## Main Features
-
-- Dashboard with key metrics
-- Date range selector
-- Metrics cards (users, revenue, conversion, tickets)
-- Trend chart
-- Recent activity table
-- Loading and empty states
-
-## User Behavior
-
-- The user can select a date range
-- The dashboard updates the displayed data accordingly (mocked)
+- Registro y login de usuarios con JWT
+- Perfil de participante vinculado al usuario
+- Crear grupos de viaje y agregar miembros
+- Registrar gastos indicando quién pagó y entre quiénes se divide
+- Editar y eliminar gastos
+- Calcular balances de cada participante
+- Calcular liquidación mínima (quién le paga cuánto a quién)
 
 ## Tech Stack
+### Backend (fase actual)
+- Spring Boot 4.1.1, Java 21, Maven
+- PostgreSQL 17, Spring Data JPA, Hibernate
+- Spring Security + JWT (jjwt 0.12.6)
+- Lombok, Validation, Actuator
 
-- React
-- TypeScript
-- No backend (mock data only)
-
-## Design Goals
-
-- Clean and modern UI
-- Dashboard-style layout
-- Simple and readable components
+### Frontend (fase 2)
+- React + Vite + TypeScript
 
 ## Scope Limitations
-
-- No authentication
-- No backend integration
-- No multiple pages
-- Keep everything in a single screen
-
-## Goal of this Project
-
-This project is intended as a demo to explore how to define a system using OpenSpec and generate a frontend structure using AI.
+- Sin email ni notificaciones
+- Sin múltiples monedas
+- Sin pagos reales
+- Sin roles de administrador global
+- Frontend es fase 2 — no implementar aún
