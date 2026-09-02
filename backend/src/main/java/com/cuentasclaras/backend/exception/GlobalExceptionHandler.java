@@ -50,6 +50,14 @@ public class GlobalExceptionHandler {
                 .body(standardBody(HttpStatus.UNAUTHORIZED, "Credenciales inválidas", request));
     }
 
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleResourceNotFound(
+            ResourceNotFoundException ex, HttpServletRequest request) {
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(standardBody(HttpStatus.NOT_FOUND, ex.getMessage(), request));
+    }
+
     private Map<String, Object> standardBody(HttpStatus status, String message, HttpServletRequest request) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("timestamp", Instant.now().toString());
