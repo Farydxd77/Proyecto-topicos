@@ -1,5 +1,3 @@
-# balances Specification
-
 ## Purpose
 
 Permitir que los miembros de un grupo consulten el estado de cuentas: el balance
@@ -9,7 +7,7 @@ lleva a todos los balances a cero. La suma de todos los balances es siempre
 exactamente cero. Es una capacidad de solo lectura: no registra pagos ni modifica
 gastos.
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Consultar el balance de cada participante de un grupo
 
