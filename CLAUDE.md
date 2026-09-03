@@ -3,7 +3,10 @@
 ## Contexto del proyecto
 App web para dividir gastos entre participantes de un viaje o evento.
 Monorepo: backend (Spring Boot + PostgreSQL) y frontend (React + Vite).
-Fase actual: backend únicamente. No tocar la carpeta `frontend/`.
+Fase actual: backend (auth y perfil listos) + frontend en construcción.
+El frontend se desarrolla contra una API simulada con MSW, sin necesidad de
+levantar el backend ni PostgreSQL. Conectarlo al backend real es un cambio
+posterior (`conectar-backend-real`).
 
 ## Stack backend
 - Spring Boot 4.1.1, Java 21, Maven
@@ -11,6 +14,34 @@ Fase actual: backend únicamente. No tocar la carpeta `frontend/`.
 - Spring Security + JWT (jjwt 0.12.6)
 - Lombok, Validation, Actuator
 - Paquete base: com.cuentasclaras.backend
+
+## Stack frontend
+- React 19, Vite 8, TypeScript 6
+- react-router (modo declarativo, no framework)
+- @tanstack/react-query (estado de servidor: posee todo lo que viene del backend)
+- Tailwind 4 (vía @tailwindcss/vite, sin archivo de configuración)
+- MSW (API simulada, solo en desarrollo)
+- oxlint
+
+## Estructura de carpetas del frontend
+frontend/src/
+├── api/ # client.ts (fetch + token + ApiError), auth.ts, perfil.ts, types.ts
+├── auth/ # AuthContext.tsx, useAuth.ts, RutaProtegida.tsx, token.ts
+├── components/ # Layout, Navegacion, Campo, Boton, MensajeError
+├── pages/ # LoginPage, RegistroPage, PerfilPage, NoEncontradaPage
+├── lib/ # validacion.ts
+├── mocks/ # db.ts (almacén en memoria), handlers.ts, browser.ts
+└── router.tsx
+
+### Convenciones del frontend
+- El token de sesión vive en `AuthContext`; todo lo demás lo posee TanStack Query
+- Nunca duplicar en el Context datos que ya vienen del backend (el username se lee
+  del perfil cacheado, no del Context)
+- Toda llamada al backend pasa por `apiFetch`; ninguna pantalla usa `fetch` directo
+- Rutas siempre relativas (`/api/...`), nunca URLs absolutas
+- `src/api/types.ts` es la única definición de los contratos: la comparten los mocks
+  y el código de producción
+- Textos de interfaz en español, literales (sin i18n)
 
 ## Estructura de paquetes
 backend/src/main/java/com/cuentasclaras/backend/
@@ -144,7 +175,7 @@ Todos los artefactos de OpenSpec (proposal.md, spec.md, design.md, tasks.md)
 deben escribirse en español.
 
 ## Fuera de alcance
-- Frontend (fase 2)
+- Grupos, gastos, balances y liquidación en el frontend (su backend aún no existe)
 - Email, notificaciones
 - Múltiples monedas
 - Pagos reales
