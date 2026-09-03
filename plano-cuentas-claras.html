@@ -1,0 +1,1110 @@
+<title>Plano de Cuentas Claras</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+  :root {
+    --paper:      #F6F7F5;
+    --surface:    #FFFFFF;
+    --surface-2:  #EEF1EF;
+    --ink:        #16211E;
+    --ink-soft:   #35443F;
+    --muted:      #66756F;
+    --line:       #DBE2DE;
+    --line-soft:  #E8ECEA;
+    --accent:     #0E5C52;
+    --accent-ink: #0A473F;
+    --accent-wash:#E2EFEC;
+    --credito:    #1F6F43;
+    --debito:     #B3261E;
+    --credito-wash: #E6F2EA;
+    --debito-wash:  #FAE9E7;
+    --sobre-accent: #FFFFFF;
+
+    --display: 'Fraunces', Georgia, 'Times New Roman', serif;
+    --body: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #0E1614;
+      --surface:    #17211E;
+      --surface-2:  #1E2A26;
+      --ink:        #E7EDEA;
+      --ink-soft:   #C2CEC9;
+      --muted:      #8FA09A;
+      --line:       #2A3733;
+      --line-soft:  #222E2A;
+      --accent:     #58C4B0;
+      --accent-ink: #7FD6C5;
+      --accent-wash:#16302B;
+      --credito:    #63C089;
+      --debito:     #EE8B7F;
+      --credito-wash: #16301F;
+      --debito-wash:  #33201D;
+      --sobre-accent: #0E1614;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:      #0E1614;
+    --surface:    #17211E;
+    --surface-2:  #1E2A26;
+    --ink:        #E7EDEA;
+    --ink-soft:   #C2CEC9;
+    --muted:      #8FA09A;
+    --line:       #2A3733;
+    --line-soft:  #222E2A;
+    --accent:     #58C4B0;
+    --accent-ink: #7FD6C5;
+    --accent-wash:#16302B;
+    --credito:    #63C089;
+    --debito:     #EE8B7F;
+    --credito-wash: #16301F;
+    --debito-wash:  #33201D;
+    --sobre-accent: #0E1614;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  .envoltorio {
+    max-width: 62rem;
+    margin: 0 auto;
+    padding: 3.5rem 1.5rem 6rem;
+  }
+
+  /* ---------- Encabezado ---------- */
+
+  .cabecera { border-bottom: 2px solid var(--ink); padding-bottom: 2rem; }
+
+  .marca {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 1rem;
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(2.2rem, 6vw, 3.4rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    margin: 0 0 1rem;
+  }
+
+  .bajada {
+    font-size: 1.1rem;
+    color: var(--ink-soft);
+    max-width: 42rem;
+    margin: 0;
+  }
+
+  /* ---------- Secciones ---------- */
+
+  section { margin-top: 4rem; }
+
+  h2 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 1.75rem;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+    margin: 0 0 0.5rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+  }
+
+  h2 .num {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+  }
+
+  h3 {
+    font-family: var(--body);
+    font-weight: 600;
+    font-size: 1.05rem;
+    margin: 2.25rem 0 0.6rem;
+  }
+
+  .intro { color: var(--ink-soft); max-width: 44rem; margin: 0 0 1.75rem; }
+
+  p { max-width: 44rem; }
+
+  /* ---------- Aviso de supuestos ---------- */
+
+  .supuestos {
+    background: var(--accent-wash);
+    border-left: 3px solid var(--accent);
+    padding: 1.1rem 1.25rem;
+    margin-top: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .supuestos .rotulo {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+  }
+
+  .supuestos p { margin: 0; font-size: 0.95rem; color: var(--ink-soft); }
+
+  /* ---------- Tablas ---------- */
+
+  .marco-tabla { overflow-x: auto; border: 1px solid var(--line); background: var(--surface); }
+
+  table { border-collapse: collapse; width: 100%; min-width: 34rem; font-size: 0.92rem; }
+
+  th {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+    font-weight: 500;
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+
+  td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+
+  .num-col { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+
+  .fila-total td {
+    border-top: 2px solid var(--ink);
+    font-weight: 600;
+    background: var(--surface-2);
+  }
+
+  .credito { color: var(--credito); font-weight: 600; }
+  .debito  { color: var(--debito);  font-weight: 600; }
+
+  /* ---------- Estado ---------- */
+
+  .estado {
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.15rem 0.5rem;
+    border: 1px solid currentColor;
+    white-space: nowrap;
+  }
+  .estado.falta  { color: var(--debito); }
+  .estado.listo  { color: var(--credito); }
+  .estado.parcial{ color: var(--muted); }
+
+  /* ---------- Wireframes ---------- */
+
+  .wf-envoltorio { overflow-x: auto; margin: 1rem 0 0; }
+
+  .wf {
+    min-width: 40rem;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    font-family: var(--mono);
+    font-size: 0.75rem;
+  }
+
+  .wf-ruta {
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--line);
+    padding: 0.5rem 0.85rem;
+    color: var(--muted);
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+  }
+  .wf-ruta .punto { width: 8px; height: 8px; border-radius: 50%; background: var(--line); flex: none; }
+
+  .wf-barra {
+    border-bottom: 1px solid var(--line);
+    padding: 0.7rem 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 1.1rem;
+    flex-wrap: wrap;
+  }
+  .wf-barra .logo { color: var(--accent); font-weight: 600; }
+  .wf-barra .der { margin-left: auto; color: var(--muted); display: flex; gap: 0.9rem; align-items: center; }
+
+  .wf-cuerpo { display: grid; grid-template-columns: 11rem 1fr; min-height: 12rem; }
+  .wf-cuerpo.sin-lateral { grid-template-columns: 1fr; }
+
+  .wf-lateral {
+    border-right: 1px solid var(--line);
+    padding: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    background: var(--surface-2);
+  }
+
+  .wf-lateral .titulo-grupo {
+    color: var(--ink);
+    font-weight: 600;
+    font-size: 0.8rem;
+    margin-bottom: 0.6rem;
+    line-height: 1.3;
+  }
+
+  .wf-lateral a, .wf-lateral span.item {
+    color: var(--muted);
+    padding: 0.35rem 0.5rem;
+    display: block;
+    text-decoration: none;
+  }
+  .wf-lateral .activo {
+    background: var(--accent-wash);
+    color: var(--accent-ink);
+    font-weight: 600;
+    border-left: 2px solid var(--accent);
+  }
+  .wf-lateral .apagado { color: var(--line); }
+
+  .wf-contenido { padding: 1rem; display: flex; flex-direction: column; gap: 0.85rem; }
+
+  .wf-titulo { color: var(--ink); font-size: 0.95rem; font-weight: 600; font-family: var(--body); }
+
+  .wf-fila {
+    border: 1px solid var(--line-soft);
+    padding: 0.55rem 0.7rem;
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    color: var(--ink-soft);
+  }
+  .wf-fila .monto { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--ink); }
+  .wf-fila .meta { color: var(--muted); font-size: 0.7rem; }
+
+  .wf-boton {
+    display: inline-block;
+    background: var(--accent);
+    color: var(--sobre-accent);
+    padding: 0.4rem 0.8rem;
+    font-weight: 600;
+    align-self: flex-start;
+  }
+
+  .wf-boton.fantasma {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  .wf-campo {
+    border: 1px solid var(--line);
+    padding: 0.45rem 0.6rem;
+    color: var(--muted);
+    background: var(--paper);
+  }
+  .wf-campo .etiqueta { color: var(--ink-soft); font-size: 0.68rem; display: block; margin-bottom: 0.15rem; }
+
+  .wf-vacio {
+    border: 1px dashed var(--line);
+    padding: 1.5rem 1rem;
+    text-align: center;
+    color: var(--muted);
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    align-items: center;
+  }
+
+  .wf-nota {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-top: 0.6rem;
+    padding-left: 0.9rem;
+    border-left: 2px solid var(--line);
+  }
+
+  .rejilla-2 { display: grid; gap: 0.5rem; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
+
+  /* ---------- Árbol de rutas ---------- */
+
+  .arbol {
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    line-height: 1.9;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 1.25rem 1.4rem;
+    overflow-x: auto;
+    white-space: pre;
+    color: var(--ink-soft);
+  }
+  .arbol .r { color: var(--accent); font-weight: 600; }
+  .arbol .c { color: var(--muted); }
+
+  /* ---------- Flujo ---------- */
+
+  .flujo { display: flex; flex-direction: column; gap: 0; margin-top: 1rem; }
+
+  .paso {
+    display: grid;
+    grid-template-columns: 2.4rem 1fr;
+    gap: 1rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .paso:last-child { border-bottom: none; }
+
+  .paso .indice {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--accent);
+    padding-top: 0.15rem;
+  }
+  .paso h4 { margin: 0 0 0.2rem; font-size: 0.98rem; font-weight: 600; }
+  .paso p { margin: 0; font-size: 0.92rem; color: var(--ink-soft); }
+  .paso code { font-family: var(--mono); font-size: 0.85em; color: var(--accent-ink); background: var(--accent-wash); padding: 0.05rem 0.3rem; }
+
+  /* ---------- Cálculo ---------- */
+
+  .calculo {
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    padding: 1rem 1.2rem;
+    overflow-x: auto;
+    white-space: pre;
+    line-height: 1.75;
+    color: var(--ink-soft);
+  }
+
+  .invariante {
+    margin-top: 1rem;
+    padding: 1rem 1.2rem;
+    background: var(--credito-wash);
+    border-left: 3px solid var(--credito);
+    font-size: 0.95rem;
+    color: var(--ink-soft);
+  }
+  .invariante strong { color: var(--ink); }
+
+  ul.limpia { padding-left: 1.1rem; max-width: 44rem; color: var(--ink-soft); }
+  ul.limpia li { margin-bottom: 0.4rem; }
+
+  code.en-linea {
+    font-family: var(--mono);
+    font-size: 0.85em;
+    background: var(--surface-2);
+    padding: 0.08rem 0.32rem;
+    color: var(--ink);
+  }
+
+  .pie {
+    margin-top: 5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 40rem) {
+    .wf-cuerpo { grid-template-columns: 9rem 1fr; }
+    .envoltorio { padding: 2.5rem 1rem 4rem; }
+  }
+</style>
+
+<div class="envoltorio">
+
+  <header class="cabecera">
+    <p class="marca">Cuentas Claras · Plan de interfaz</p>
+    <h1>Plano de la aplicación</h1>
+    <p class="bajada">
+      Cómo se ve, cómo se navega y en qué orden se construye. Cada pantalla dibujada,
+      cada flujo resuelto, y el escenario de Samaipata calculado hasta el último centavo.
+    </p>
+  </header>
+
+  <div class="supuestos">
+    <span class="rotulo">Dos decisiones que asume este plano</span>
+    <p>
+      <strong>1.</strong> El login es la puerta de entrada a la app, no un requisito para
+      ser participante. Vos tenés cuenta; Ana, Beto, Carla y Diego son nombres que tipeás
+      dentro de un grupo. Esto exige soltar el <code class="en-linea">NOT NULL</code> de
+      <code class="en-linea">participantes.usuario_id</code>.
+    </p>
+    <p>
+      <strong>2.</strong> Un gasto se divide en partes iguales entre los participantes
+      marcados. División por porcentajes o montos exactos queda fuera de alcance.
+    </p>
+  </div>
+
+  <!-- ================= 1 ================= -->
+  <section>
+    <h2><span class="num">01</span> Lo que hay que entregar</h2>
+    <p class="intro">
+      Los seis requisitos mínimos de la consigna, contra lo que existe hoy en el repositorio.
+    </p>
+
+    <div class="marco-tabla">
+      <table>
+        <thead>
+          <tr>
+            <th>Requisito</th>
+            <th>Pantalla que lo resuelve</th>
+            <th>Hoy</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Agregar y listar participantes</td>
+            <td><code class="en-linea">/grupos/:id/participantes</code></td>
+            <td><span class="estado falta">Falta</span></td>
+          </tr>
+          <tr>
+            <td>Registrar gasto: descripción, monto, quién pagó, entre quiénes se divide</td>
+            <td><code class="en-linea">/grupos/:id/gastos/nuevo</code></td>
+            <td><span class="estado falta">Falta</span></td>
+          </tr>
+          <tr>
+            <td>Editar y eliminar gastos</td>
+            <td><code class="en-linea">/grupos/:id/gastos/:gid</code></td>
+            <td><span class="estado falta">Falta</span></td>
+          </tr>
+          <tr>
+            <td>Pantalla de saldos</td>
+            <td><code class="en-linea">/grupos/:id/saldos</code></td>
+            <td><span class="estado falta">Falta</span></td>
+          </tr>
+          <tr>
+            <td>Pantalla de liquidación</td>
+            <td><code class="en-linea">/grupos/:id/liquidacion</code></td>
+            <td><span class="estado falta">Falta</span></td>
+          </tr>
+          <tr>
+            <td>Los datos sobreviven al refrescar</td>
+            <td>PostgreSQL vía la API</td>
+            <td><span class="estado parcial">Backend sí, front con mocks</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="wf-nota">
+      Login, registro y perfil ya están construidos. La consigna no los pide, pero tampoco
+      los prohíbe: quedan como la puerta de entrada y no se tiran.
+    </p>
+  </section>
+
+  <!-- ================= 2 ================= -->
+  <section>
+    <h2><span class="num">02</span> Mapa de rutas</h2>
+    <p class="intro">
+      Dos niveles de navegación: una barra superior global, y una lateral que solo existe
+      dentro de un grupo. Todo lo que importa cuelga de un grupo.
+    </p>
+
+    <div class="arbol"><span class="c">público</span>
+<span class="r">/login</span>                        entrar
+<span class="r">/registro</span>                     crear tu cuenta
+
+<span class="c">privado — barra superior</span>
+<span class="r">/</span>                             <span class="c">→ redirige a /grupos</span>
+<span class="r">/grupos</span>                       <span class="c">HOME.</span> tus grupos, o el estado vacío
+<span class="r">/grupos/nuevo</span>                 crear grupo
+<span class="r">/perfil</span>                       tu cuenta
+
+<span class="c">privado — dentro de un grupo, con barra lateral</span>
+<span class="r">/grupos/:id</span>                   <span class="c">→ redirige a /gastos</span>
+<span class="r">/grupos/:id/gastos</span>            lista de gastos del grupo
+<span class="r">/grupos/:id/gastos/nuevo</span>      registrar gasto
+<span class="r">/grupos/:id/gastos/:gid</span>       editar o eliminar
+<span class="r">/grupos/:id/participantes</span>     agregar y listar
+<span class="r">/grupos/:id/saldos</span>            quién debe y a quién le deben
+<span class="r">/grupos/:id/liquidacion</span>       las transferencias para quedar a mano</div>
+  </section>
+
+  <!-- ================= 3 ================= -->
+  <section>
+    <h2><span class="num">03</span> El armazón</h2>
+    <p class="intro">
+      La barra superior te dice dónde estás en la app. La lateral te dice dónde estás
+      dentro del grupo. Nunca cambian de lugar.
+    </p>
+
+    <h3>Barra superior — siempre visible con sesión</h3>
+    <div class="wf-envoltorio">
+      <div class="wf">
+        <div class="wf-ruta"><span class="punto"></span>localhost:5173/grupos</div>
+        <div class="wf-barra">
+          <span class="logo">Cuentas Claras</span>
+          <span style="color: var(--ink);">Grupos</span>
+          <div class="der">
+            <span>demo</span>
+            <span>Cerrar sesión</span>
+          </div>
+        </div>
+        <div class="wf-cuerpo sin-lateral">
+          <div class="wf-contenido">
+            <span style="color: var(--muted);">— contenido de la ruta —</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="wf-nota">
+      Tres elementos y nada más: marca, grupos, tu sesión. El nombre de usuario sale del
+      perfil cacheado, así que cambiarlo actualiza la barra sola.
+    </p>
+
+    <h3>Barra lateral — solo dentro de un grupo</h3>
+    <div class="wf-envoltorio">
+      <div class="wf">
+        <div class="wf-ruta"><span class="punto"></span>localhost:5173/grupos/1/gastos</div>
+        <div class="wf-barra">
+          <span class="logo">Cuentas Claras</span>
+          <span style="color: var(--muted);">Grupos</span>
+          <div class="der"><span>demo</span><span>Cerrar sesión</span></div>
+        </div>
+        <div class="wf-cuerpo">
+          <nav class="wf-lateral">
+            <span class="titulo-grupo">Samaipata<br><span style="font-weight:400;color:var(--muted);font-size:0.7rem;">4 participantes</span></span>
+            <span class="item activo">Gastos</span>
+            <span class="item">Participantes</span>
+            <span class="item">Saldos</span>
+            <span class="item">Liquidación</span>
+          </nav>
+          <div class="wf-contenido">
+            <span style="color: var(--muted);">— la pantalla del grupo —</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="wf-nota">
+      El orden importa: Gastos → Participantes → Saldos → Liquidación es el recorrido
+      natural. Saldos y Liquidación van al final porque son consecuencia, no entrada.
+    </p>
+  </section>
+
+  <!-- ================= 4 ================= -->
+  <section>
+    <h2><span class="num">04</span> Las pantallas</h2>
+    <p class="intro">
+      Seis pantallas nuevas. Cada una con su estado lleno y, donde importa, su estado vacío
+      — que es lo primero que ve alguien que abre la app por primera vez.
+    </p>
+
+    <h3>Home · Mis grupos <code class="en-linea">/grupos</code></h3>
+    <div class="wf-envoltorio">
+      <div class="wf">
+        <div class="wf-ruta"><span class="punto"></span>localhost:5173/grupos</div>
+        <div class="wf-barra">
+          <span class="logo">Cuentas Claras</span>
+          <span style="color: var(--ink);">Grupos</span>
+          <div class="der"><span>demo</span><span>Cerrar sesión</span></div>
+        </div>
+        <div class="wf-cuerpo sin-lateral">
+          <div class="wf-contenido">
+            <div style="display:flex;align-items:center;gap:1rem;">
+              <span class="wf-titulo">Mis grupos</span>
+              <span class="wf-boton" style="margin-left:auto;align-self:auto;">+ Nuevo grupo</span>
+            </div>
+            <div class="wf-fila">
+              <span style="color:var(--ink);">Samaipata</span>
+              <span class="meta">4 participantes · 4 gastos</span>
+              <span class="monto">Bs. 1.600,00</span>
+            </div>
+            <div class="wf-fila">
+              <span style="color:var(--ink);">Cena de fin de año</span>
+              <span class="meta">6 participantes · 2 gastos</span>
+              <span class="monto">Bs. 720,00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Home vacío — la primera vez que entrás</h3>
+    <div class="wf-envoltorio">
+      <div class="wf">
+        <div class="wf-ruta"><span class="punto"></span>localhost:5173/grupos</div>
+        <div class="wf-barra">
+          <span class="logo">Cuentas Claras</span>
+          <span style="color: var(--ink);">Grupos</span>
+          <div class="der"><span>demo</span><span>Cerrar sesión</span></div>
+        </div>
+        <div class="wf-cuerpo sin-lateral">
+          <div class="wf-contenido">
+            <span class="wf-titulo">Mis grupos</span>
+            <div class="wf-vacio">
+              <span style="color:var(--ink-soft);">Todavía no tenés ningún grupo</span>
+              <span>Un grupo es un viaje o un evento donde varias personas ponen plata.</span>
+              <span class="wf-boton" style="align-self:center;">Crear mi primer grupo</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="wf-nota">
+      El estado vacío explica qué es un grupo. Es el único momento en que la app puede
+      enseñar el concepto sin estorbar.
+    </p>
+
+    <h3>Participantes <code class="en-linea">/grupos/:id/participantes</code></h3>
+    <div class="wf-envoltorio">
+      <div class="wf">
+        <div class="wf-ruta"><span class="punto"></span>localhost:5173/grupos/1/participantes</div>
+        <div class="wf-barra">
+          <span class="logo">Cuentas Claras</span>
+          <span style="color: var(--muted);">Grupos</span>
+          <div class="der"><span>demo</span><span>Cerrar sesión</span></div>
+        </div>
+        <div class="wf-cuerpo">
+          <nav class="wf-lateral">
+            <span class="titulo-grupo">Samaipata</span>
+            <span class="item">Gastos</span>
+            <span class="item activo">Participantes</span>
+            <span class="item">Saldos</span>
+            <span class="item">Liquidación</span>
+          </nav>
+          <div class="wf-contenido">
+            <span class="wf-titulo">Participantes</span>
+            <div style="display:flex;gap:0.5rem;">
+              <span class="wf-campo" style="flex:1;">Nombre del participante</span>
+              <span class="wf-boton" style="align-self:auto;">Agregar</span>
+            </div>
+            <div class="wf-fila"><span style="color:var(--ink);">Ana</span><span class="meta" style="margin-left:auto;">2 gastos pagados</span></div>
+            <div class="wf-fila"><span style="color:var(--ink);">Beto</span><span class="meta" style="margin-left:auto;">1 gasto pagado</span></div>
+            <div class="wf-fila"><span style="color:var(--ink);">Carla</span><span class="meta" style="margin-left:auto;">1 gasto pagado</span></div>
+            <div class="wf-fila"><span style="color:var(--ink);">Diego</span><span class="meta" style="margin-left:auto;">Eliminar</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="wf-nota">
+      Un campo y un botón: agregar a alguien tiene que costar dos segundos. Solo se puede
+      eliminar a quien no aparece en ningún gasto — por eso Diego muestra "Eliminar" y los
+      otros tres no.
+    </p>
+
+    <h3>Gastos <code class="en-linea">/grupos/:id/gastos</code></h3>
+    <div class="wf-envoltorio">
+      <div class="wf">
+        <div class="wf-ruta"><span class="punto"></span>localhost:5173/grupos/1/gastos</div>
+        <div class="wf-barra">
+          <span class="logo">Cuentas Claras</span>
+          <span style="color: var(--muted);">Grupos</span>
+          <div class="der"><span>demo</span><span>Cerrar sesión</span></div>
+        </div>
+        <div class="wf-cuerpo">
+          <nav class="wf-lateral">
+            <span class="titulo-grupo">Samaipata</span>
+            <span class="item activo">Gastos</span>
+            <span class="item">Participantes</span>
+            <span class="item">Saldos</span>
+            <span class="item">Liquidación</span>
+          </nav>
+          <div class="wf-contenido">
+            <div style="display:flex;align-items:center;gap:1rem;">
+              <span class="wf-titulo">Gastos</span>
+              <span class="wf-boton" style="margin-left:auto;align-self:auto;">+ Registrar gasto</span>
+            </div>
+            <div class="wf-fila">
+              <span style="color:var(--ink);">Cabaña</span>
+              <span class="meta">pagó Ana · entre 4</span>
+              <span class="monto">Bs. 800,00</span>
+            </div>
+            <div class="wf-fila">
+              <span style="color:var(--ink);">Cena</span>
+              <span class="meta">pagó Beto · entre 4</span>
+              <span class="monto">Bs. 400,00</span>
+            </div>
+            <div class="wf-fila">
+              <span style="color:var(--ink);">Gasolina</span>
+              <span class="meta">pagó Carla · entre 4</span>
+              <span class="monto">Bs. 240,00</span>
+            </div>
+            <div class="wf-fila">
+              <span style="color:var(--ink);">Entradas El Fuerte</span>
+              <span class="meta">pagó Ana · entre 4</span>
+              <span class="monto">Bs. 160,00</span>
+            </div>
+            <div class="wf-fila" style="border-color:var(--line);background:var(--surface-2);">
+              <span style="color:var(--ink);font-weight:600;">Total del grupo</span>
+              <span class="monto" style="font-weight:600;">Bs. 1.600,00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Registrar gasto <code class="en-linea">/grupos/:id/gastos/nuevo</code></h3>
+    <div class="wf-envoltorio">
+      <div class="wf">
+        <div class="wf-ruta"><span class="punto"></span>localhost:5173/grupos/1/gastos/nuevo</div>
+        <div class="wf-barra">
+          <span class="logo">Cuentas Claras</span>
+          <span style="color: var(--muted);">Grupos</span>
+          <div class="der"><span>demo</span><span>Cerrar sesión</span></div>
+        </div>
+        <div class="wf-cuerpo">
+          <nav class="wf-lateral">
+            <span class="titulo-grupo">Samaipata</span>
+            <span class="item activo">Gastos</span>
+            <span class="item">Participantes</span>
+            <span class="item">Saldos</span>
+            <span class="item">Liquidación</span>
+          </nav>
+          <div class="wf-contenido">
+            <span class="wf-titulo">Registrar gasto</span>
+            <span class="wf-campo"><span class="etiqueta">Descripción</span>Cabaña</span>
+            <div class="rejilla-2">
+              <span class="wf-campo"><span class="etiqueta">Monto (Bs.)</span>800,00</span>
+              <span class="wf-campo"><span class="etiqueta">Fecha</span>2026-09-05</span>
+            </div>
+            <span class="wf-campo"><span class="etiqueta">¿Quién pagó?</span>Ana ▾</span>
+            <div class="wf-campo">
+              <span class="etiqueta">¿Entre quiénes se divide?</span>
+              <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.35rem;color:var(--ink-soft);">
+                <span>☑ Ana</span><span>☑ Beto</span><span>☑ Carla</span><span>☑ Diego</span>
+              </div>
+              <span style="display:block;margin-top:0.5rem;color:var(--muted);">Bs. 200,00 cada uno</span>
+            </div>
+            <div style="display:flex;gap:0.5rem;">
+              <span class="wf-boton" style="align-self:auto;">Guardar gasto</span>
+              <span class="wf-boton fantasma" style="align-self:auto;">Cancelar</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="wf-nota">
+      Todos marcados por defecto; desmarcar excluye a alguien de ese gasto. El "Bs. 200,00
+      cada uno" se recalcula en vivo al desmarcar — así ves el reparto antes de guardar, y
+      el redondeo deja de ser una sorpresa.
+    </p>
+
+    <h3>Saldos <code class="en-linea">/grupos/:id/saldos</code></h3>
+    <div class="wf-envoltorio">
+      <div class="wf">
+        <div class="wf-ruta"><span class="punto"></span>localhost:5173/grupos/1/saldos</div>
+        <div class="wf-barra">
+          <span class="logo">Cuentas Claras</span>
+          <span style="color: var(--muted);">Grupos</span>
+          <div class="der"><span>demo</span><span>Cerrar sesión</span></div>
+        </div>
+        <div class="wf-cuerpo">
+          <nav class="wf-lateral">
+            <span class="titulo-grupo">Samaipata</span>
+            <span class="item">Gastos</span>
+            <span class="item">Participantes</span>
+            <span class="item activo">Saldos</span>
+            <span class="item">Liquidación</span>
+          </nav>
+          <div class="wf-contenido">
+            <span class="wf-titulo">Saldos</span>
+            <div class="wf-fila"><span style="color:var(--ink);">Ana</span><span class="meta">pagó 960,00 · le toca 400,00</span><span class="monto credito">+560,00</span></div>
+            <div class="wf-fila"><span style="color:var(--ink);">Beto</span><span class="meta">pagó 400,00 · le toca 400,00</span><span class="monto">0,00</span></div>
+            <div class="wf-fila"><span style="color:var(--ink);">Carla</span><span class="meta">pagó 240,00 · le toca 400,00</span><span class="monto debito">−160,00</span></div>
+            <div class="wf-fila"><span style="color:var(--ink);">Diego</span><span class="meta">pagó 0,00 · le toca 400,00</span><span class="monto debito">−400,00</span></div>
+            <div class="wf-fila" style="border-color:var(--credito);background:var(--credito-wash);">
+              <span style="color:var(--ink);font-weight:600;">Suma de saldos</span>
+              <span class="monto" style="font-weight:600;">0,00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="wf-nota">
+      La fila "Suma de saldos" no es decoración: es la comprobación de la consigna a la
+      vista. Si alguna vez no da 0,00 exacto, hay un bug de redondeo y se ve en pantalla.
+    </p>
+
+    <h3>Liquidación <code class="en-linea">/grupos/:id/liquidacion</code></h3>
+    <div class="wf-envoltorio">
+      <div class="wf">
+        <div class="wf-ruta"><span class="punto"></span>localhost:5173/grupos/1/liquidacion</div>
+        <div class="wf-barra">
+          <span class="logo">Cuentas Claras</span>
+          <span style="color: var(--muted);">Grupos</span>
+          <div class="der"><span>demo</span><span>Cerrar sesión</span></div>
+        </div>
+        <div class="wf-cuerpo">
+          <nav class="wf-lateral">
+            <span class="titulo-grupo">Samaipata</span>
+            <span class="item">Gastos</span>
+            <span class="item">Participantes</span>
+            <span class="item">Saldos</span>
+            <span class="item activo">Liquidación</span>
+          </nav>
+          <div class="wf-contenido">
+            <span class="wf-titulo">Cómo quedar a mano</span>
+            <span style="color:var(--muted);">2 transferencias resuelven todo el viaje.</span>
+            <div class="wf-fila" style="border-color:var(--line);">
+              <span class="debito">Diego</span><span style="color:var(--muted);">→</span><span class="credito">Ana</span>
+              <span class="monto">Bs. 400,00</span>
+            </div>
+            <div class="wf-fila" style="border-color:var(--line);">
+              <span class="debito">Carla</span><span style="color:var(--muted);">→</span><span class="credito">Ana</span>
+              <span class="monto">Bs. 160,00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="wf-nota">
+      Esta es la pantalla de la demo. Es exactamente el resultado que la consigna da como
+      ejemplo: "Diego → Ana: Bs. 400" y "Carla → Ana: Bs. 160".
+    </p>
+  </section>
+
+  <!-- ================= 5 ================= -->
+  <section>
+    <h2><span class="num">05</span> El recorrido de la demo</h2>
+    <p class="intro">
+      Tres minutos, desde la app vacía hasta la liquidación. Si este camino tiene fricción,
+      la interfaz está mal.
+    </p>
+
+    <div class="flujo">
+      <div class="paso">
+        <span class="indice">01</span>
+        <div>
+          <h4>Entrar</h4>
+          <p><code>demo</code> / <code>demo1234</code> en <code>/login</code>. Caés en el home de grupos.</p>
+        </div>
+      </div>
+      <div class="paso">
+        <span class="indice">02</span>
+        <div>
+          <h4>Crear el grupo</h4>
+          <p>"Nuevo grupo" → nombre <code>Samaipata</code>, descripción opcional. Te deja parado dentro del grupo.</p>
+        </div>
+      </div>
+      <div class="paso">
+        <span class="indice">03</span>
+        <div>
+          <h4>Cargar los cuatro amigos</h4>
+          <p>Participantes → tipeás Ana, Beto, Carla, Diego. Cuatro veces campo y Enter, sin salir de la pantalla.</p>
+        </div>
+      </div>
+      <div class="paso">
+        <span class="indice">04</span>
+        <div>
+          <h4>Cargar los cuatro gastos</h4>
+          <p>Cabaña 800 (Ana), Entradas 160 (Ana), Cena 400 (Beto), Gasolina 240 (Carla). Todos entre los cuatro.</p>
+        </div>
+      </div>
+      <div class="paso">
+        <span class="indice">05</span>
+        <div>
+          <h4>Mostrar los saldos</h4>
+          <p>Ana <span class="credito">+560</span>, Beto <span style="color:var(--muted);">0</span>, Carla <span class="debito">−160</span>, Diego <span class="debito">−400</span>. Y la suma en 0,00.</p>
+        </div>
+      </div>
+      <div class="paso">
+        <span class="indice">06</span>
+        <div>
+          <h4>Cerrar con la liquidación</h4>
+          <p>Diego → Ana Bs. 400 y Carla → Ana Bs. 160. Dos transferencias y el viaje queda saldado.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 6 ================= -->
+  <section>
+    <h2><span class="num">06</span> El cálculo, que hay que saber explicar</h2>
+    <p class="intro">
+      La consigna avisa que en la demo cualquiera del equipo tiene que poder explicar esto.
+      Son dos pasos.
+    </p>
+
+    <h3>Paso 1 · El balance de cada uno</h3>
+    <div class="calculo">balance(p) = todo lo que pagó p  −  todo lo que le corresponde a p
+
+Ana    960,00 − 400,00 = <span class="credito">+560,00</span>
+Beto   400,00 − 400,00 =     0,00
+Carla  240,00 − 400,00 = <span class="debito">−160,00</span>
+Diego    0,00 − 400,00 = <span class="debito">−400,00</span>
+                          ─────────
+                              <span style="color:var(--ink);">0,00</span></div>
+
+    <div class="invariante">
+      <strong>La suma siempre da 0.</strong> Tiene que dar: cada boliviano que alguien puso
+      es un boliviano que a alguien le corresponde. Si no da 0, se perdió plata en el
+      redondeo y hay un bug.
+    </div>
+
+    <h3>Paso 2 · Las transferencias</h3>
+    <p>
+      Se separan los que deben de los que les deben, y se van emparejando de mayor a menor:
+      el que más debe le paga al que más le deben, por el menor de los dos montos. Ese
+      emparejamiento cierra al menos una cuenta por transferencia, así que con
+      <em>n</em> participantes nunca hacen falta más de <em>n−1</em>.
+    </p>
+
+    <div class="calculo">deben: Diego −400,00 · Carla −160,00
+les deben: Ana +560,00
+
+Diego −400 vs Ana +560  →  <span style="color:var(--ink);">Diego → Ana  400,00</span>   quedan: Diego 0, Ana +160
+Carla −160 vs Ana +160  →  <span style="color:var(--ink);">Carla → Ana  160,00</span>   quedan: Carla 0, Ana 0
+
+todos en cero · 2 transferencias</div>
+
+    <h3>El centavo que sobra</h3>
+    <p>
+      Bs. 100 entre 3 da 33,3333… Se reparte 33,33 a cada deudor y <strong>el pagador
+      absorbe el resto</strong>, que es la regla que ya está en el <code class="en-linea">CLAUDE.md</code>.
+    </p>
+    <div class="calculo">gasto: 100,00 pagado por Ana, dividido entre Ana, Beto y Carla
+
+Beto  debe  33,33
+Carla debe  33,33
+Ana   asume 33,34   <span style="color:var(--muted);">← 100,00 − 33,33 − 33,33</span>
+
+balances:  Ana <span class="credito">+66,66</span> · Beto <span class="debito">−33,33</span> · Carla <span class="debito">−33,33</span>  →  suma <span style="color:var(--ink);">0,00</span></div>
+    <p class="wf-nota">
+      Todo en <code class="en-linea">BigDecimal</code> con escala 2, nunca en coma flotante.
+      Un <code class="en-linea">double</code> rompe la invariante del cero.
+    </p>
+  </section>
+
+  <!-- ================= 7 ================= -->
+  <section>
+    <h2><span class="num">07</span> Casos borde</h2>
+    <p class="intro">
+      La consigna los pide explícitos. Cada uno con lo que hace la interfaz, no solo lo que
+      rechaza el backend.
+    </p>
+
+    <div class="marco-tabla">
+      <table>
+        <thead>
+          <tr><th>Situación</th><th>Qué hace la app</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Grupo con 0 participantes</td>
+            <td>"Registrar gasto" aparece deshabilitado, con el motivo: agregá al menos un participante primero.</td>
+          </tr>
+          <tr>
+            <td>Gasto de Bs. 0 o negativo</td>
+            <td>Rechazado en el formulario antes de enviar. El backend ya tiene el <code class="en-linea">CHECK monto &gt; 0</code>.</td>
+          </tr>
+          <tr>
+            <td>Monto que no divide exacto</td>
+            <td>Cada deudor recibe el monto truncado a 2 decimales y el pagador absorbe la diferencia.</td>
+          </tr>
+          <tr>
+            <td>Eliminar a alguien que ya tiene gastos</td>
+            <td>No se ofrece la acción. Se explica que primero hay que eliminar o reasignar sus gastos.</td>
+          </tr>
+          <tr>
+            <td>Nombres repetidos en un grupo</td>
+            <td>Se bloquea: dos "Ana" en el mismo grupo hacen ilegibles los saldos y la liquidación.</td>
+          </tr>
+          <tr>
+            <td>Gasto sin nadie marcado</td>
+            <td>No se puede guardar: al menos un participante tiene que estar incluido.</td>
+          </tr>
+          <tr>
+            <td>Refrescar la página</td>
+            <td>Todo vive en PostgreSQL. La sesión sobrevive en <code class="en-linea">localStorage</code>.</td>
+          </tr>
+          <tr>
+            <td>Grupo donde nadie pagó nada</td>
+            <td>Saldos todos en 0,00 y liquidación vacía, con el mensaje "no hay nada que saldar".</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= 8 ================= -->
+  <section>
+    <h2><span class="num">08</span> Orden de construcción</h2>
+    <p class="intro">
+      Cada etapa deja algo que se puede mostrar en pantalla. El cálculo va antes que sus
+      pantallas porque es lo que hay que saber defender.
+    </p>
+
+    <div class="marco-tabla">
+      <table>
+        <thead>
+          <tr><th>Etapa</th><th>Qué entra</th><th>Se puede demostrar</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>1</strong></td>
+            <td>Soltar <code class="en-linea">usuario_id</code> del participante</td>
+            <td>Cargar los cuatro amigos sin crearles cuenta</td>
+          </tr>
+          <tr>
+            <td><strong>2</strong></td>
+            <td>Grupos: crear, listar, entrar</td>
+            <td>Home con grupos y su estado vacío</td>
+          </tr>
+          <tr>
+            <td><strong>3</strong></td>
+            <td>Participantes dentro de un grupo</td>
+            <td>Agregar, listar, eliminar al que no tiene gastos</td>
+          </tr>
+          <tr>
+            <td><strong>4</strong></td>
+            <td>Gastos: alta, edición, baja, división</td>
+            <td>Los cuatro gastos de Samaipata cargados</td>
+          </tr>
+          <tr>
+            <td><strong>5</strong></td>
+            <td><code class="en-linea">BalanceUtil</code>: balances y liquidación</td>
+            <td>La invariante del cero, con pruebas</td>
+          </tr>
+          <tr>
+            <td><strong>6</strong></td>
+            <td>Pantallas de saldos y liquidación</td>
+            <td>La demo completa de punta a punta</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p style="margin-top:1.5rem;">
+      Etapas 1 a 5 son backend con su pantalla; la 5 es la única puramente de cálculo y
+      merece pruebas de verdad, incluida una que verifique que la suma de balances da
+      exactamente cero con montos que no dividen exacto.
+    </p>
+  </section>
+
+  <footer class="pie">
+    <span>Cuentas Claras · plan de interfaz</span>
+    <span>Escenario Samaipata · Bs. 1.600,00 · 2 transferencias</span>
+  </footer>
+
+</div>

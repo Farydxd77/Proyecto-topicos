@@ -2,8 +2,11 @@ schema: spec-driven
 
 context: |
   Proyecto: Cuentas Claras — app para dividir gastos entre participantes de un viaje.
-  Monorepo: backend/ (Spring Boot 4.1.1, Java 21, Maven, PostgreSQL 17) y frontend/ (React + Vite, fase 2).
-  Fase actual: solo backend. No tocar frontend/.
+  Monorepo: backend/ (Spring Boot 4.1.1, Java 21, Maven, PostgreSQL 17) y frontend/ (React 19 + Vite 8 + TypeScript).
+  Fase actual: backend con auth y perfil listos; frontend en construcción.
+  Frontend: react-router, @tanstack/react-query, Tailwind 4, MSW.
+  El frontend se desarrolla contra una API simulada con MSW, sin levantar backend ni PostgreSQL.
+  Conectarlo al backend real es un cambio posterior (conectar-backend-real).
   Paquete base: com.cuentasclaras.backend
   PKs: BIGINT autoincremental (BIGSERIAL en PostgreSQL, IDENTITY en JPA).
   ORM: Hibernate con ddl-auto=update (sin Flyway ni Liquibase).
@@ -36,7 +39,8 @@ operations:
       - Leer CLAUDE.md antes de generar cualquier código
       - PKs siempre BIGINT con IDENTITY, nunca UUID
       - Respetar la estructura de paquetes definida en CLAUDE.md
-      - No crear archivos en frontend/
+      - En el frontend: toda llamada al backend pasa por apiFetch, nunca fetch directo
+      - En el frontend: rutas relativas (/api/...), nunca URLs absolutas
   archive:
     guidance:
       - Escribir en español

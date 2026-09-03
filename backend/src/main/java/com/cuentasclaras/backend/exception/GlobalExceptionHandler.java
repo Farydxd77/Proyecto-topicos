@@ -58,6 +58,30 @@ public class GlobalExceptionHandler {
                 .body(standardBody(HttpStatus.NOT_FOUND, ex.getMessage(), request));
     }
 
+    @ExceptionHandler(ForbiddenOperationException.class)
+    public ResponseEntity<Map<String, Object>> handleForbidden(
+            ForbiddenOperationException ex, HttpServletRequest request) {
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(standardBody(HttpStatus.FORBIDDEN, ex.getMessage(), request));
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<Map<String, Object>> handleConflict(
+            ConflictException ex, HttpServletRequest request) {
+
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(standardBody(HttpStatus.CONFLICT, ex.getMessage(), request));
+    }
+
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<Map<String, Object>> handleBadRequest(
+            BadRequestException ex, HttpServletRequest request) {
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(standardBody(HttpStatus.BAD_REQUEST, ex.getMessage(), request));
+    }
+
     private Map<String, Object> standardBody(HttpStatus status, String message, HttpServletRequest request) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("timestamp", Instant.now().toString());
