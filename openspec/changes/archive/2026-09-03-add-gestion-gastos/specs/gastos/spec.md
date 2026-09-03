@@ -1,5 +1,3 @@
-# gastos Specification
-
 ## Purpose
 
 Permitir que los miembros de un grupo registren, consulten, editen y eliminen los
@@ -9,7 +7,7 @@ centavo sobrante del redondeo, de modo que la suma de lo adeudado siempre iguala
 monto total. Los gastos ya registrados no se ven afectados por cambios posteriores
 en la membresía del grupo.
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Registrar un gasto de un grupo
 

@@ -115,13 +115,17 @@ public class GrupoService {
             throw new BadRequestException("El creador no puede quitarse a sí mismo del grupo");
         }
 
-        boolean eraMiembro = grupo.getMiembros().removeIf(
-                m -> m.getParticipante().getId().equals(participanteId));
-        if (!eraMiembro) {
-            throw new ResourceNotFoundException("El participante no es miembro del grupo");
-        }
+        GrupoParticipante membresia = grupoParticipanteRepository
+                .findByGrupoIdAndParticipanteId(grupoId, participanteId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "El participante no es miembro del grupo"));
 
-        grupoRepository.save(grupo);
+        // Se quita también de la colección en memoria para que el agregado quede
+        // coherente dentro de la transacción, pero el borrado real de la fila lo
+        // hace el repositorio: `orphanRemoval` sobre este bag no programa el DELETE
+        // cuando la entidad ya está gestionada y se pasa por `save()`/`merge()`.
+        grupo.getMiembros().removeIf(m -> m.getParticipante().getId().equals(participanteId));
+        grupoParticipanteRepository.delete(membresia);
     }
 
     private GrupoParticipante nuevaMembresia(Grupo grupo, Participante participante) {
