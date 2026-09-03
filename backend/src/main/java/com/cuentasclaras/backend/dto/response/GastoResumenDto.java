@@ -7,6 +7,9 @@ public record GastoResumenDto(
         Long id,
         String descripcion,
         BigDecimal monto,
+        String moneda,
+        String monedaNombre,
+        BigDecimal montoUsdt,
         ParticipanteDto pagador,
         LocalDate fecha) {
 }

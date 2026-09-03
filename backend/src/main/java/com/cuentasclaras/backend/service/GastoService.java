@@ -9,7 +9,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
+import com.cuentasclaras.backend.client.Conversion;
+import com.cuentasclaras.backend.client.CriptoYaClient;
 import com.cuentasclaras.backend.dto.request.ActualizarGastoRequest;
 import com.cuentasclaras.backend.dto.request.RegistrarGastoRequest;
 import com.cuentasclaras.backend.dto.response.GastoParticipanteDto;
@@ -32,6 +35,7 @@ import com.cuentasclaras.backend.repository.GrupoParticipanteRepository;
 import com.cuentasclaras.backend.repository.GrupoRepository;
 import com.cuentasclaras.backend.repository.ParticipanteRepository;
 import com.cuentasclaras.backend.repository.UsuarioRepository;
+import com.cuentasclaras.backend.util.MonedasSoportadas;
 
 @Service
 public class GastoService {
@@ -42,6 +46,7 @@ public class GastoService {
     private final GrupoParticipanteRepository grupoParticipanteRepository;
     private final ParticipanteRepository participanteRepository;
     private final UsuarioRepository usuarioRepository;
+    private final CriptoYaClient criptoYaClient;
 
     public GastoService(
             GastoRepository gastoRepository,
@@ -49,31 +54,38 @@ public class GastoService {
             GrupoRepository grupoRepository,
             GrupoParticipanteRepository grupoParticipanteRepository,
             ParticipanteRepository participanteRepository,
-            UsuarioRepository usuarioRepository) {
+            UsuarioRepository usuarioRepository,
+            CriptoYaClient criptoYaClient) {
         this.gastoRepository = gastoRepository;
         this.gastoParticipanteRepository = gastoParticipanteRepository;
         this.grupoRepository = grupoRepository;
         this.grupoParticipanteRepository = grupoParticipanteRepository;
         this.participanteRepository = participanteRepository;
         this.usuarioRepository = usuarioRepository;
+        this.criptoYaClient = criptoYaClient;
     }
 
     @Transactional
     public GastoResponse registrar(Long grupoId, RegistrarGastoRequest req) {
         Grupo grupo = grupoDondeEsMiembro(grupoId, participanteActual());
         Participante pagador = pagadorMiembro(grupoId, req.pagadorId());
+        ResultadoConversion conv = resolver(req.moneda(), req.monedaNombre(), req.monto());
 
         Gasto gasto = Gasto.builder()
                 .grupo(grupo)
                 .descripcion(req.descripcion())
                 .monto(req.monto())
+                .moneda(conv.moneda())
+                .monedaNombre(conv.monedaNombre())
+                .montoUsdt(conv.montoUsdt())
+                .tasaCambio(conv.tasaCambio())
                 .pagador(pagador)
                 .fecha(req.fecha())
                 .build();
         gasto = gastoRepository.save(gasto);
 
         List<GastoParticipante> division = calcularDivision(
-                gasto, req.monto(), miembrosActuales(grupoId), pagador);
+                gasto, montoADividir(conv), miembrosActuales(grupoId), pagador);
         gastoParticipanteRepository.saveAll(division);
 
         return toResponse(gasto, division);
@@ -99,9 +111,14 @@ public class GastoService {
         grupoDondeEsMiembro(grupoId, participanteActual());
         Gasto gasto = gastoDelGrupo(grupoId, gastoId);
         Participante pagador = pagadorMiembro(grupoId, req.pagadorId());
+        ResultadoConversion conv = resolver(req.moneda(), req.monedaNombre(), req.monto());
 
         gasto.setDescripcion(req.descripcion());
         gasto.setMonto(req.monto());
+        gasto.setMoneda(conv.moneda());
+        gasto.setMonedaNombre(conv.monedaNombre());
+        gasto.setMontoUsdt(conv.montoUsdt());
+        gasto.setTasaCambio(conv.tasaCambio());
         gasto.setPagador(pagador);
         gasto.setFecha(req.fecha());
         gasto = gastoRepository.save(gasto);
@@ -113,7 +130,7 @@ public class GastoService {
         gastoParticipanteRepository.flush();
 
         List<GastoParticipante> division = calcularDivision(
-                gasto, req.monto(), miembrosActuales(grupoId), pagador);
+                gasto, montoADividir(conv), miembrosActuales(grupoId), pagador);
         gastoParticipanteRepository.saveAll(division);
 
         return toResponse(gasto, division);
@@ -125,6 +142,55 @@ public class GastoService {
         Gasto gasto = gastoDelGrupo(grupoId, gastoId);
         gastoParticipanteRepository.deleteByGastoId(gastoId);
         gastoRepository.delete(gasto);
+    }
+
+    // --- Conversión de moneda a USDT ------------------------------------
+
+    private record ResultadoConversion(
+            String moneda, String monedaNombre, BigDecimal montoUsdt, BigDecimal tasaCambio) {
+    }
+
+    /**
+     * Resuelve la moneda del gasto y su conversión a USDT. Moneda ausente o
+     * {@code USDT} → sin llamada externa (tasa 1). Moneda soportada distinta de
+     * USDT → consulta CriptoYa. Moneda no soportada → {@link BadRequestException}
+     * (antes de cualquier llamada externa).
+     */
+    private ResultadoConversion resolver(String monedaReq, String monedaNombreReq, BigDecimal montoOriginal) {
+        String moneda = StringUtils.hasText(monedaReq)
+                ? monedaReq.trim().toUpperCase()
+                : "USDT";
+
+        BigDecimal montoUsdt;
+        BigDecimal tasaCambio;
+        if (MonedasSoportadas.esUsdt(moneda)) {
+            montoUsdt = montoOriginal.setScale(6, RoundingMode.HALF_UP);
+            tasaCambio = BigDecimal.ONE.setScale(6, RoundingMode.HALF_UP);
+        } else if (!MonedasSoportadas.esSoportada(moneda)) {
+            throw new BadRequestException("Moneda no soportada: " + moneda);
+        } else {
+            Conversion c = MonedasSoportadas.esFiat(moneda)
+                    ? criptoYaClient.convertirFiatAUsdt(moneda, montoOriginal)
+                    : criptoYaClient.convertirCriptoAUsdt(moneda, montoOriginal);
+            montoUsdt = c.montoUsdt();
+            tasaCambio = c.tasaCambio();
+        }
+
+        String monedaNombre;
+        if (StringUtils.hasText(monedaNombreReq)) {
+            monedaNombre = monedaNombreReq.trim();
+        } else if (MonedasSoportadas.esUsdt(moneda)) {
+            monedaNombre = "Tether";
+        } else {
+            monedaNombre = moneda;
+        }
+
+        return new ResultadoConversion(moneda, monedaNombre, montoUsdt, tasaCambio);
+    }
+
+    /** El reparto en {@code gasto_participantes} se hace sobre el monto en USDT a 2 decimales. */
+    private BigDecimal montoADividir(ResultadoConversion conv) {
+        return conv.montoUsdt().setScale(2, RoundingMode.HALF_UP);
     }
 
     // --- Guardas y resolución de identidad --------------------------------
@@ -201,6 +267,9 @@ public class GastoService {
                 g.getId(),
                 g.getDescripcion(),
                 g.getMonto(),
+                g.getMoneda(),
+                g.getMonedaNombre(),
+                g.getMontoUsdt(),
                 toParticipanteDto(g.getPagador()),
                 g.getFecha());
     }
@@ -215,6 +284,10 @@ public class GastoService {
                 g.getGrupo().getId(),
                 g.getDescripcion(),
                 g.getMonto(),
+                g.getMoneda(),
+                g.getMonedaNombre(),
+                g.getMontoUsdt(),
+                g.getTasaCambio(),
                 toParticipanteDto(g.getPagador()),
                 g.getFecha(),
                 divisionDto);

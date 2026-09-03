@@ -9,6 +9,10 @@ public record GastoResponse(
         Long grupoId,
         String descripcion,
         BigDecimal monto,
+        String moneda,
+        String monedaNombre,
+        BigDecimal montoUsdt,
+        BigDecimal tasaCambio,
         ParticipanteDto pagador,
         LocalDate fecha,
         List<GastoParticipanteDto> division) {

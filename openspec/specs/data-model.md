@@ -48,16 +48,20 @@
 > PK compuesta: (grupo_id, participante_id)
 
 ## Tabla: gastos
-| Columna     | Tipo          | Restricciones              |
-|-------------|---------------|----------------------------|
-| id          | BIGSERIAL     | PK                         |
-| grupo_id    | BIGINT        | NOT NULL, FK→grupos.id     |
-| descripcion | VARCHAR(255)  | NOT NULL                   |
-| monto       | DECIMAL(10,2) | NOT NULL, CHECK (monto > 0)|
-| pagador_id  | BIGINT        | FK→participantes.id        |
-| fecha       | DATE          | NOT NULL                   |
-| created_at  | TIMESTAMP     | NOT NULL                   |
-| updated_at  | TIMESTAMP     | NOT NULL                   |
+| Columna           | Tipo              | Restricciones              |
+|-------------------|-------------------|----------------------------|
+| id                | BIGSERIAL         | PK                         |
+| grupo_id          | BIGINT            | NOT NULL, FK→grupos.id     |
+| descripcion       | VARCHAR(255)      | NOT NULL                   |
+| monto             | DECIMAL(10,2)     | NOT NULL, CHECK (monto > 0) — monto original en la moneda del gasto, NO es USDT |
+| moneda            | VARCHAR(10)       | NOT NULL, DEFAULT 'USDT'    |
+| moneda_nombre     | VARCHAR(50)       | NOT NULL, DEFAULT 'Tether'  |
+| monto_usdt        | DECIMAL(10,6)     | NOT NULL, DEFAULT 0         |
+| tasa_cambio       | DECIMAL(10,6)     | NOT NULL, DEFAULT 1         |
+| pagador_id        | BIGINT            | FK→participantes.id        |
+| fecha             | DATE              | NOT NULL                   |
+| created_at        | TIMESTAMP         | NOT NULL                   |
+| updated_at        | TIMESTAMP         | NOT NULL                   |
 
 ## Tabla: gasto_participantes
 | Columna         | Tipo          | Restricciones              |

@@ -11,7 +11,9 @@ import jakarta.validation.constraints.Size;
 
 public record ActualizarGastoRequest(
         @NotBlank(message = "La descripción es obligatoria") @Size(max = 255, message = "La descripción no puede superar los 255 caracteres") String descripcion,
-        @NotNull(message = "El monto es obligatorio") @Positive(message = "El monto debe ser mayor que 0") @Digits(integer = 8, fraction = 2, message = "El monto admite hasta 8 enteros y 2 decimales") BigDecimal monto,
+        @NotNull(message = "El monto es obligatorio") @Positive(message = "El monto debe ser mayor que 0") @Digits(integer = 12, fraction = 8, message = "El monto admite hasta 12 enteros y 8 decimales") BigDecimal monto,
+        @Size(max = 10, message = "La moneda admite hasta 10 caracteres") String moneda,
+        @Size(max = 50, message = "El nombre de la moneda admite hasta 50 caracteres") String monedaNombre,
         @NotNull(message = "El pagadorId es obligatorio") Long pagadorId,
         @NotNull(message = "La fecha es obligatoria") LocalDate fecha) {
 }

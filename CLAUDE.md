@@ -92,7 +92,11 @@ Todas las tablas tienen created_at y updated_at (TIMESTAMP NOT NULL)
 - id BIGSERIAL PK
 - grupo_id BIGINT FK→grupos.id
 - descripcion VARCHAR(255) NOT NULL
-- monto DECIMAL(10,2) NOT NULL CHECK > 0
+- monto DECIMAL(10,2) NOT NULL CHECK > 0 — monto original en la moneda del gasto, NO es USDT
+- moneda VARCHAR(10) NOT NULL DEFAULT 'USDT' — símbolo (BOB, USD, BTC, etc.)
+- moneda_nombre VARCHAR(50) NOT NULL DEFAULT 'Tether' — nombre completo (Boliviano, etc.)
+- monto_usdt DECIMAL(10,6) NOT NULL DEFAULT 0 — monto convertido a USDT
+- tasa_cambio DECIMAL(10,6) NOT NULL DEFAULT 1 — tasa usada al registrar/editar
 - pagador_id BIGINT FK→participantes.id
 - fecha DATE NOT NULL
 - created_at, updated_at
@@ -180,9 +184,21 @@ deben escribirse en español.
 - Métodos: GET, POST, PUT, DELETE, OPTIONS
 - Headers: Authorization, Content-Type
 
+## Cambio de moneda
+- Cada gasto tiene su propia moneda (BOB, USD, BTC, etc.)
+- monto en gastos = monto original en la moneda del gasto (NO es USDT)
+- moneda = símbolo de la moneda (BOB, USD, BTC, etc.)
+- moneda_nombre = nombre completo (Boliviano, Dólar estadounidense, Bitcoin, etc.)
+- monto_usdt = monto convertido a USDT usando CriptoYa (Binance P2P)
+- tasa_cambio = tasa usada al momento de registrar o editar el gasto
+- monto_adeudado en gasto_participantes siempre en USDT
+- API externa: https://criptoya.com/api/binancep2p/{coin}/{fiat}/1
+- Fiat soportado: ARS, BRL, CLP, COP, MXN, PEN, VES, BOB, UYU, DOP, PYG, USD, EUR
+- Cripto soportado: USDT, BTC, ETH, USDC, DAI, BNB, SOL, XRP, ADA, AVAX, DOGE y más
+- USDT → tasa = 1.0, sin consulta externa
+
 ## Fuera de alcance
 - Grupos, gastos, balances y liquidación en el frontend (su backend aún no existe)
 - Email, notificaciones
-- Múltiples monedas
 - Pagos reales
 - Roles de administrador global

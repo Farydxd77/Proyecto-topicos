@@ -1,6 +1,7 @@
 package com.cuentasclaras.backend.service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -101,7 +102,10 @@ public class BalanceService {
             Participante pagador = gasto.getPagador();
             if (pagador != null) {
                 participantes.putIfAbsent(pagador.getId(), pagador);
-                pagado.merge(pagador.getId(), gasto.getMonto(), BigDecimal::add);
+                // El balance se lleva en USDT: lo pagado es el monto convertido
+                // redondeado a 2 decimales, igual escala que `monto_adeudado`.
+                BigDecimal pagadoUsdt = gasto.getMontoUsdt().setScale(2, RoundingMode.HALF_UP);
+                pagado.merge(pagador.getId(), pagadoUsdt, BigDecimal::add);
             }
             for (GastoParticipante fila : gastoParticipanteRepository.findByGastoId(gasto.getId())) {
                 Participante p = fila.getParticipante();

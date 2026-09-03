@@ -82,6 +82,14 @@ public class GlobalExceptionHandler {
                 .body(standardBody(HttpStatus.BAD_REQUEST, ex.getMessage(), request));
     }
 
+    @ExceptionHandler(ServicioExternoNoDisponibleException.class)
+    public ResponseEntity<Map<String, Object>> handleServicioExterno(
+            ServicioExternoNoDisponibleException ex, HttpServletRequest request) {
+
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(standardBody(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), request));
+    }
+
     private Map<String, Object> standardBody(HttpStatus status, String message, HttpServletRequest request) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("timestamp", Instant.now().toString());
