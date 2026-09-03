@@ -143,6 +143,12 @@ Siempre este JSON para cualquier error:
 Todos los artefactos de OpenSpec (proposal.md, spec.md, design.md, tasks.md) 
 deben escribirse en español.
 
+## CORS (pendiente)
+- Configurar CorsConfig en config/
+- Orígenes: http://localhost:5173 (desarrollo), https://dominio (producción)
+- Métodos: GET, POST, PUT, DELETE, OPTIONS
+- Headers: Authorization, Content-Type
+
 ## Fuera de alcance
 - Frontend (fase 2)
 - Email, notificaciones
