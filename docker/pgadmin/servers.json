@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Cuentas Claras",
+      "Group": "Servidores",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "cuentas_claras",
+      "Username": "postgres",
+      "SSLMode": "prefer",
+      "Comment": "Base de datos local del proyecto. El host es 'postgres' (el nombre del servicio en docker-compose), no 'localhost': pgAdmin corre dentro de la red de Docker. La contraseña es 'admin' y se pide la primera vez que se abre la conexion."
+    }
+  }
+}

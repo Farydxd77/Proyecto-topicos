@@ -1,32 +1,21 @@
-import { rm } from 'node:fs/promises'
-import { resolve } from 'node:path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
-import { defineConfig, type Plugin } from 'vite'
-
-/**
- * Vite copia todo `public/` al build tal cual, así que el service worker de MSW
- * terminaría en `dist/`. Nada lo registra en producción —`iniciarMocks` vive detrás de
- * `import.meta.env.DEV`—, pero un worker capaz de simular la API no tiene por qué
- * viajar en un artefacto de producción. Se borra al cerrar el bundle.
- */
-function excluirWorkerDeMocks(): Plugin {
-  return {
-    name: 'excluir-worker-de-mocks',
-    apply: 'build',
-    async closeBundle() {
-      await rm(resolve(import.meta.dirname, 'dist/mockServiceWorker.js'), { force: true })
-    },
-  }
-}
+import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss(), excluirWorkerDeMocks()],
+  plugins: [react(), tailwindcss()],
   server: {
-    // Mientras los mocks de MSW estén activos este proxy queda dormido: el service
-    // worker responde /api antes de que la petición salga a la red. Se deja
-    // configurado para el día que se apaguen los mocks y haya backend real.
+    /**
+     * El frontend habla siempre con el backend real. Las peticiones salen a `/api`
+     * relativo, el navegador las dirige a este mismo servidor y Vite las reenvía a
+     * Spring Boot del lado del servidor.
+     *
+     * Por eso no hace falta configurar CORS en desarrollo: el navegador solo ve un
+     * origen (`localhost:5173`), así que no hay petición cruzada que negociar. CORS
+     * será necesario únicamente si en producción el frontend y el backend se sirven
+     * desde dominios distintos.
+     */
     proxy: {
       '/api': {
         target: 'http://localhost:8080',

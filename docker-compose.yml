@@ -1,0 +1,73 @@
+# Infraestructura local de Cuentas Claras.
+#
+# Levanta PostgreSQL 17 y pgAdmin 4. Las credenciales son exactamente las que
+# backend/src/main/resources/application.properties usa por defecto, así que el
+# backend se conecta sin definir ninguna variable de entorno:
+#
+#   spring.datasource.url=jdbc:postgresql://localhost:5432/cuentas_claras
+#   spring.datasource.username=postgres
+#   spring.datasource.password=admin
+#
+# Uso:
+#   docker compose up -d      levantar
+#   docker compose ps         ver estado
+#   docker compose logs -f    ver logs
+#   docker compose down       apagar (conserva los datos)
+#   docker compose down -v    apagar y BORRAR los datos
+#
+# Hibernate corre con ddl-auto=update: crea las tablas solo al arrancar el
+# backend. Una base recién creada acá está vacía hasta ese momento, y eso es lo
+# esperado.
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: cuentas-claras-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cuentas_claras
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+      # Acelera el arranque inicial y evita el aviso de locale en la imagen alpine.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    ports:
+      # Publicado en el host para que el backend, que corre fuera de Docker,
+      # llegue por localhost:5432.
+      - "5432:5432"
+    volumes:
+      - postgres-datos:/var/lib/postgresql/data
+    healthcheck:
+      # pgAdmin espera a que esto pase; sin healthcheck arrancaría antes de que
+      # la base acepte conexiones.
+      test: ["CMD-SHELL", "pg_isready -U postgres -d cuentas_claras"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: cuentas-claras-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@cuentasclaras.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      # Modo escritorio: entra directo, sin pantalla de login ni contraseña
+      # maestra. Es cómodo en local y aceptable porque solo escucha en el host.
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin-datos:/var/lib/pgadmin
+      # Deja el servidor "Cuentas Claras" ya registrado al primer arranque.
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres-datos:
+    name: cuentas-claras-postgres-datos
+  pgadmin-datos:
+    name: cuentas-claras-pgadmin-datos

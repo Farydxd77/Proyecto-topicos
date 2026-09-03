@@ -3,6 +3,9 @@ import { Navigate, Route, Routes } from 'react-router'
 import { RutaProtegida } from './auth/RutaProtegida'
 import { useAuth } from './auth/useAuth'
 import { Layout } from './components/Layout'
+import { GastoDetallePage } from './pages/GastoDetallePage'
+import { GrupoDetallePage } from './pages/GrupoDetallePage'
+import { GruposPage } from './pages/GruposPage'
 import { LoginPage } from './pages/LoginPage'
 import { NoEncontradaPage } from './pages/NoEncontradaPage'
 import { PerfilPage } from './pages/PerfilPage'
@@ -45,6 +48,9 @@ export function Router() {
       <Route element={<RutaProtegida />}>
         <Route element={<Layout />}>
           <Route path="/perfil" element={<PerfilPage />} />
+          <Route path="/grupos" element={<GruposPage />} />
+          <Route path="/grupos/:id" element={<GrupoDetallePage />} />
+          <Route path="/grupos/:id/gastos/:gastoId" element={<GastoDetallePage />} />
         </Route>
       </Route>
 

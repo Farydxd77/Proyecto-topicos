@@ -3,10 +3,12 @@
 ## Contexto del proyecto
 App web para dividir gastos entre participantes de un viaje o evento.
 Monorepo: backend (Spring Boot + PostgreSQL) y frontend (React + Vite).
-Fase actual: backend (auth y perfil listos) + frontend en construcción.
-El frontend se desarrolla contra una API simulada con MSW, sin necesidad de
-levantar el backend ni PostgreSQL. Conectarlo al backend real es un cambio
-posterior (`conectar-backend-real`).
+Fase actual: backend completo (auth, perfil, gestión general, grupos, gastos con
+conversión de moneda, balances y liquidación) y frontend conectado a él.
+El frontend habla SIEMPRE con el backend real: no hay API simulada. Las peticiones
+salen a `/api` relativo y el proxy de Vite las reenvía a `localhost:8080`.
+Para trabajar hacen falta los tres procesos: PostgreSQL (`docker compose up -d`),
+backend (`mvnw.cmd spring-boot:run`) y frontend (`npm run dev`).
 
 ## Stack backend
 - Spring Boot 4.1.1, Java 21, Maven
@@ -20,17 +22,18 @@ posterior (`conectar-backend-real`).
 - react-router (modo declarativo, no framework)
 - @tanstack/react-query (estado de servidor: posee todo lo que viene del backend)
 - Tailwind 4 (vía @tailwindcss/vite, sin archivo de configuración)
-- MSW (API simulada, solo en desarrollo)
 - oxlint
 
 ## Estructura de carpetas del frontend
 frontend/src/
-├── api/ # client.ts (fetch + token + ApiError), auth.ts, perfil.ts, types.ts
+├── api/ # client.ts (fetch + token + ApiError), auth.ts, perfil.ts,
+│ # grupos.ts, participantes.ts, gastos.ts, balances.ts, types.ts
 ├── auth/ # AuthContext.tsx, useAuth.ts, RutaProtegida.tsx, token.ts
-├── components/ # Layout, Navegacion, Campo, Boton, MensajeError
-├── pages/ # LoginPage, RegistroPage, PerfilPage, NoEncontradaPage
-├── lib/ # validacion.ts
-├── mocks/ # db.ts (almacén en memoria), handlers.ts, browser.ts
+├── components/ # Layout, Navegacion, Campo, Boton, MensajeError,
+│ # GestionMiembros, FormularioGasto, SeccionGastos, SeccionBalances
+├── pages/ # LoginPage, RegistroPage, PerfilPage, GruposPage,
+│ # GrupoDetallePage, GastoDetallePage, NoEncontradaPage
+├── lib/ # validacion.ts, claves.ts, formato.ts, monedas.ts, estadoConsulta.ts
 └── router.tsx
 
 ### Convenciones del frontend
@@ -39,8 +42,13 @@ frontend/src/
   del perfil cacheado, no del Context)
 - Toda llamada al backend pasa por `apiFetch`; ninguna pantalla usa `fetch` directo
 - Rutas siempre relativas (`/api/...`), nunca URLs absolutas
-- `src/api/types.ts` es la única definición de los contratos: la comparten los mocks
-  y el código de producción
+- `src/api/types.ts` es la única definición de los contratos y espeja los `record`
+  de `com.cuentasclaras.backend.dto`
+- Toda pantalla que consulte pasa por `estadoDe(consulta)` de `lib/estadoConsulta.ts`
+  para no quedarse nunca en carga permanente
+- Las claves de TanStack Query viven en `lib/claves.ts`, porque las mutaciones de una
+  capacidad invalidan consultas de otra (un gasto cambia los balances)
+- Los montos se formatean, nunca se operan: el backend ya calculó conversión y reparto
 - Textos de interfaz en español, literales (sin i18n)
 
 ## Estructura de paquetes
@@ -178,11 +186,13 @@ Siempre este JSON para cualquier error:
 Todos los artefactos de OpenSpec (proposal.md, spec.md, design.md, tasks.md) 
 deben escribirse en español.
 
-## CORS (pendiente)
-- Configurar CorsConfig en config/
-- Orígenes: http://localhost:5173 (desarrollo), https://dominio (producción)
-- Métodos: GET, POST, PUT, DELETE, OPTIONS
-- Headers: Authorization, Content-Type
+## CORS (no hace falta en desarrollo)
+- El proxy de Vite reenvía `/api` a `localhost:8080` del lado del servidor, así que
+  el navegador solo ve un origen (`localhost:5173`): no hay petición cruzada
+- Solo será necesario si en producción el frontend y el backend se sirven desde
+  dominios distintos. En ese caso: `CorsConfig` en `config/`, con el origen de
+  producción, métodos GET/POST/PUT/DELETE/OPTIONS y headers Authorization y
+  Content-Type
 
 ## Cambio de moneda
 - Cada gasto tiene su propia moneda (BOB, USD, BTC, etc.)
@@ -198,7 +208,9 @@ deben escribirse en español.
 - USDT → tasa = 1.0, sin consulta externa
 
 ## Fuera de alcance
-- Grupos, gastos, balances y liquidación en el frontend (su backend aún no existe)
-- Email, notificaciones
-- Pagos reales
+- Email, notificaciones, invitaciones a grupos
+- Pagos reales y registro de que una transferencia de la liquidación ya se pagó
 - Roles de administrador global
+- Excluir participantes de un gasto o repartir en proporciones desiguales: el
+  backend reparte siempre entre todos los miembros del grupo
+- Abandonar un grupo por cuenta propia y transferir el rol de creador

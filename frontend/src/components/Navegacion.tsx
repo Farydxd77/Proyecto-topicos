@@ -3,8 +3,14 @@ import { NavLink, useNavigate } from 'react-router'
 import { obtenerPerfil } from '../api/perfil'
 import { useAuth } from '../auth/useAuth'
 
-/** Destinos cuyo backend todavía no existe: se muestran, pero no navegan. */
-const PROXIMAMENTE = ['Grupos', 'Gastos']
+/** Destinos cuyo frontend todavía no existe: se muestran, pero no navegan. */
+const PROXIMAMENTE: string[] = []
+
+/** Destinos ya disponibles, en el orden en que se recorren. */
+const ENLACES = [
+  { to: '/perfil', texto: 'Perfil' },
+  { to: '/grupos', texto: 'Grupos' },
+]
 
 export function Navegacion() {
   const { cerrarSesion } = useAuth()
@@ -27,18 +33,21 @@ export function Navegacion() {
       <nav className="mx-auto flex max-w-3xl items-center gap-6 px-4 py-3">
         <span className="font-semibold text-emerald-700">Cuentas Claras</span>
 
-        <NavLink
-          to="/perfil"
-          className={({ isActive }) =>
-            `text-sm transition ${
-              isActive
-                ? 'font-medium text-slate-900'
-                : 'text-slate-600 hover:text-slate-900'
-            }`
-          }
-        >
-          Perfil
-        </NavLink>
+        {ENLACES.map((enlace) => (
+          <NavLink
+            key={enlace.to}
+            to={enlace.to}
+            className={({ isActive }) =>
+              `text-sm transition ${
+                isActive
+                  ? 'font-medium text-slate-900'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`
+            }
+          >
+            {enlace.texto}
+          </NavLink>
+        ))}
 
         {PROXIMAMENTE.map((destino) => (
           <span

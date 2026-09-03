@@ -13,24 +13,51 @@ cuentas-claras/
 
 - Java 21
 - Maven
-- PostgreSQL 17
+- Docker Desktop (levanta PostgreSQL 17 y pgAdmin con `docker compose`).
+  Alternativa: una instalación propia de PostgreSQL 17 en `localhost:5432`.
 - Node.js 22+
 - OpenSpec CLI: `npm install -g @fission-ai/openspec@latest`
 - Claude Code: `npm install -g @anthropic-ai/claude-code`
 
 ## Configuración inicial
 
-### 1. Crear la base de datos
-```sql
-CREATE DATABASE cuentas_claras;
+### 1. Levantar la base de datos y pgAdmin
+Desde la raíz del repositorio:
+```bash
+docker compose up -d
+```
+Esto arranca dos contenedores:
+
+| Servicio | Puerto | Para qué |
+|----------|--------|----------|
+| `postgres` | `5432` | PostgreSQL 17 con la base `cuentas_claras` ya creada |
+| `pgadmin`  | `5050` | Administrador web de la base |
+
+**pgAdmin** queda en http://localhost:5050. Entra directo, sin login. El servidor
+"Cuentas Claras" ya aparece registrado; al abrirlo pide la contraseña de
+PostgreSQL una única vez: `admin`.
+
+La base arranca **vacía**: las tablas las crea Hibernate (`ddl-auto=update`) la
+primera vez que se levanta el backend.
+
+Comandos útiles:
+```bash
+docker compose ps        # ver estado
+docker compose logs -f   # ver logs
+docker compose down      # apagar conservando los datos
+docker compose down -v   # apagar y BORRAR los datos
 ```
 
 ### 2. Configurar variables de entorno
-El backend usa estas variables con valores por defecto para desarrollo local:
+El backend usa estas variables, y sus valores por defecto ya coinciden con lo que
+levanta `docker compose`, así que en desarrollo local no hace falta definir
+ninguna:
+```
 DB_URL=jdbc:postgresql://localhost:5432/cuentas_claras
 DB_USER=postgres
-DB_PASS=postgres
+DB_PASS=admin
 JWT_SECRET=clave-secreta-local-solo-para-desarrollo-no-usar-en-prod
+```
 
 ### 3. Correr el backend
 ```bash

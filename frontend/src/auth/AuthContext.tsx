@@ -50,6 +50,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Le enseña al cliente HTTP cómo leer el token y qué hacer ante un 401. Se vuelve a
   // registrar cuando el token cambia, de modo que siempre entrega el vigente.
+  //
+  // Que esto ocurra en un efecto —y por tanto DESPUÉS de que los hijos monten y
+  // puedan pedir datos— no deja ninguna petición sin token: hasta que se registra,
+  // el cliente lee el token del almacenamiento por su cuenta. Ver `api/client.ts`.
   useEffect(() => {
     configurarSesion({
       obtenerToken: () => token,

@@ -10,6 +10,7 @@ import {
 import { Boton } from '../components/Boton'
 import { Campo } from '../components/Campo'
 import { MensajeError } from '../components/MensajeError'
+import { estadoDe } from '../lib/estadoConsulta'
 import {
   soloErrores,
   validarApellido,
@@ -42,16 +43,17 @@ function Exito({ mensaje }: { mensaje: string | null }) {
 export function PerfilPage() {
   const queryClient = useQueryClient()
   const consulta = useQuery({ queryKey: CLAVE_PERFIL, queryFn: obtenerPerfil })
-  const perfil = consulta.data
+  const estado = estadoDe(consulta)
+  const perfil = estado.datos
 
-  if (consulta.isPending) {
+  if (estado.cargando) {
     return <p className="text-slate-500">Cargando tu perfil…</p>
   }
 
-  if (consulta.isError) {
+  if (estado.error || !perfil) {
     return (
       <div className="flex flex-col items-start gap-3">
-        <MensajeError error={consulta.error} />
+        <MensajeError error={estado.error} />
         <Boton variante="secundario" onClick={() => consulta.refetch()}>
           Reintentar
         </Boton>
