@@ -1,115 +1,285 @@
-# Grupos — Gestión de grupos de viaje
+# grupos Specification
 
-## Objetivo
-Permitir que usuarios autenticados creen grupos de viaje, gestionen sus miembros
-y consulten la información del grupo. Solo el creador tiene permisos de
-administración (editar, eliminar, agregar y quitar miembros).
+## Purpose
 
-## Comportamiento esperado
+Permitir que un usuario autenticado cree grupos de viaje, consulte los grupos a
+los que pertenece con su lista de miembros, y —cuando es el creador del grupo—
+edite sus datos, lo elimine y administre quiénes lo integran. La capacidad
+establece la frontera de visibilidad de todo lo que vendrá después: un usuario
+solo ve y opera sobre los grupos de los que es miembro.
 
-### Dado que un usuario autenticado envía POST /api/grupos con datos válidos
-Cuando el nombre no está vacío,
-Entonces se crea el grupo con el usuario autenticado como creador,
-se agrega automáticamente el creador como primer miembro,
-y devuelve 201 Created con los datos del grupo y la lista de miembros.
+## Requirements
 
-### Dado que un usuario autenticado envía GET /api/grupos
-Cuando el token JWT es válido,
-Entonces devuelve 200 OK con la lista de grupos donde el usuario es miembro.
-Si no pertenece a ningún grupo devuelve 200 con [].
+### Requirement: Crear un grupo
 
-### Dado que un usuario autenticado envía GET /api/grupos/{id}
-Cuando el grupo existe y el usuario es miembro,
-Entonces devuelve 200 OK con nombre, descripcion, creador y lista de miembros.
+El sistema SHALL exponer `POST /api/grupos` para usuarios autenticados con token
+JWT válido. El cuerpo SHALL aceptar `nombre` (obligatorio, no vacío, máximo 100
+caracteres) y `descripcion` (opcional). Cuando los datos son válidos, el sistema
+SHALL crear el grupo con el participante del usuario autenticado como creador,
+SHALL agregarlo automáticamente como primer miembro del grupo, y SHALL responder
+`201 Created` con `id`, `nombre`, `descripcion`, el creador y la lista de
+miembros. Si `nombre` falta, está vacío o solo contiene espacios, el sistema SHALL
+responder `400 Bad Request` con el formato de error estándar y no SHALL crear
+ningún grupo.
 
-### Dado que un usuario autenticado envía GET /api/grupos/{id}
-Cuando el usuario no es miembro del grupo,
-Entonces devuelve 403 Forbidden con el formato de error estándar.
+#### Scenario: Creación con datos válidos
 
-### Dado que el creador envía PUT /api/grupos/{id} con datos válidos
-Cuando el grupo existe y el usuario es el creador,
-Entonces actualiza nombre y/o descripcion
-y devuelve 200 OK con los datos actualizados.
+- **WHEN** un usuario autenticado envía `POST /api/grupos` con
+  `{"nombre": "Viaje a Uyuni", "descripcion": "Enero 2026"}`
+- **THEN** el sistema responde `201 Created` con el grupo creado (`id`, `nombre`,
+  `descripcion`, `creador`, `miembros`)
+- **AND** el `creador` corresponde al participante del usuario autenticado
+- **AND** la lista `miembros` contiene exactamente un elemento: ese mismo creador
 
-### Dado que un no creador envía PUT /api/grupos/{id}
-Cuando el usuario es miembro pero no el creador,
-Entonces devuelve 403 Forbidden con el formato de error estándar.
+#### Scenario: Creación sin descripción
 
-### Dado que el creador envía DELETE /api/grupos/{id}
-Cuando el grupo existe y el usuario es el creador,
-Entonces elimina el grupo y todos sus registros en grupo_participantes
-y devuelve 204 No Content.
+- **WHEN** un usuario autenticado envía `POST /api/grupos` con solo
+  `{"nombre": "Cumpleaños"}`
+- **THEN** el sistema responde `201 Created` con `descripcion` nula
+- **AND** el creador queda agregado como único miembro
 
-### Dado que un no creador envía DELETE /api/grupos/{id}
-Cuando el usuario es miembro pero no el creador,
-Entonces devuelve 403 Forbidden con el formato de error estándar.
+#### Scenario: Nombre vacío
 
-### Dado que el creador envía POST /api/grupos/{id}/miembros con un participanteId válido
-Cuando el participante existe y no es ya miembro del grupo,
-Entonces se agrega el participante al grupo
-y devuelve 201 Created con la lista actualizada de miembros.
+- **WHEN** un usuario autenticado envía `POST /api/grupos` con `nombre` ausente,
+  vacío o compuesto solo de espacios
+- **THEN** el sistema responde `400 Bad Request` con el formato de error estándar
+- **AND** no se crea ningún grupo
 
-### Dado que el creador intenta agregar un participante que ya es miembro
-Cuando el participante ya pertenece al grupo,
-Entonces devuelve 409 Conflict con el formato de error estándar.
+#### Scenario: Petición sin token
 
-### Dado que el creador envía DELETE /api/grupos/{id}/miembros/{participanteId}
-Cuando el participante es miembro del grupo y no es el creador,
-Entonces elimina al participante del grupo
-y devuelve 204 No Content.
+- **WHEN** se envía `POST /api/grupos` sin cabecera `Authorization` o con un token
+  inválido o expirado
+- **THEN** el sistema responde `401 Unauthorized` con el formato de error estándar
 
-### Dado que el creador intenta eliminarse a sí mismo del grupo
-Cuando el participanteId corresponde al creador,
-Entonces devuelve 400 Bad Request — el creador no puede quitarse a sí mismo.
+### Requirement: Listar los grupos propios
 
-## Casos límite
-- Nombre del grupo vacío → 400 Bad Request
-- Grupo no existe → 404 Not Found
-- Usuario no miembro intenta ver el grupo → 403 Forbidden
-- No creador intenta editar, eliminar o gestionar miembros → 403 Forbidden
-- Participante ya es miembro → 409 Conflict
-- Creador intenta eliminarse a sí mismo → 400 Bad Request
-- Eliminar grupo elimina en cascada sus registros en grupo_participantes
+El sistema SHALL exponer `GET /api/grupos` que devuelve `200 OK` con un array
+JSON de los grupos en los que el usuario autenticado es miembro, sea creador o
+no. Cada elemento SHALL incluir al menos `id`, `nombre`, `descripcion` y el
+creador del grupo. El sistema MUST NOT incluir grupos en los que el usuario no es
+miembro. Si el usuario no pertenece a ningún grupo, el sistema SHALL responder
+`200 OK` con un array vacío `[]`.
 
-## Repositorios utilizados
+#### Scenario: El usuario pertenece a varios grupos
 
-### GrupoRepository
-- findById(Long id)
-- findByMiembrosParticipanteId(Long participanteId)
+- **WHEN** un usuario autenticado que es miembro de dos grupos envía
+  `GET /api/grupos`
+- **THEN** el sistema responde `200 OK` con un array de esos dos grupos
+- **AND** cada elemento incluye `id`, `nombre`, `descripcion` y `creador`
 
-### GrupoParticipanteRepository
-- findByGrupoIdAndParticipanteId(Long grupoId, Long participanteId)
-- findByGrupoId(Long grupoId)
+#### Scenario: El usuario no pertenece a ningún grupo
 
-### ParticipanteRepository
-- findById(Long id)
-- findByUsuarioId(Long usuarioId)
+- **WHEN** un usuario autenticado que no es miembro de ningún grupo envía
+  `GET /api/grupos`
+- **THEN** el sistema responde `200 OK` con `[]`
 
-## Servicios
-- GrupoService usa GrupoRepository, GrupoParticipanteRepository y ParticipanteRepository
-- El participante del usuario autenticado se resuelve desde el token JWT via findByUsuarioId
-- Verificar membresía antes de cualquier operación sobre el grupo
-- Verificar que es creador antes de editar, eliminar o gestionar miembros
+#### Scenario: Existen grupos ajenos
 
-## Criterios de aceptación
-- [ ] POST /api/grupos crea el grupo y agrega al creador como primer miembro
-- [ ] GET /api/grupos devuelve solo los grupos donde el usuario es miembro
-- [ ] GET /api/grupos/{id} devuelve 403 si el usuario no es miembro
-- [ ] GET /api/grupos/{id} devuelve 404 si el grupo no existe
-- [ ] PUT /api/grupos/{id} solo lo puede hacer el creador
-- [ ] PUT /api/grupos/{id} devuelve 403 si no es el creador
-- [ ] DELETE /api/grupos/{id} solo lo puede hacer el creador
-- [ ] DELETE /api/grupos/{id} devuelve 403 si no es el creador
-- [ ] POST /api/grupos/{id}/miembros agrega el participante correctamente
-- [ ] POST /api/grupos/{id}/miembros devuelve 409 si ya es miembro
-- [ ] DELETE /api/grupos/{id}/miembros/{participanteId} elimina al miembro
-- [ ] DELETE /api/grupos/{id}/miembros/{participanteId} devuelve 400 si es el creador
-- [ ] La app compila sin errores
-- [ ] mvnw test pasa
+- **WHEN** un usuario autenticado envía `GET /api/grupos` y existen grupos creados
+  por otros usuarios en los que él no es miembro
+- **THEN** la respuesta no incluye ninguno de esos grupos ajenos
 
-## Fuera de alcance
-- No se implementan gastos (siguiente tarea)
-- No se implementan balances ni liquidación
-- Un miembro no puede abandonar el grupo por su cuenta
-- No se implementan roles dentro del grupo (solo creador vs miembro)
-- No se implementa transferencia de rol de creador a otro miembro
+#### Scenario: Petición sin token
+
+- **WHEN** se envía `GET /api/grupos` sin token válido
+- **THEN** el sistema responde `401 Unauthorized` con el formato de error estándar
+
+### Requirement: Ver el detalle de un grupo
+
+El sistema SHALL exponer `GET /api/grupos/{id}` que, cuando el grupo existe y el
+usuario autenticado es miembro, devuelve `200 OK` con `id`, `nombre`,
+`descripcion`, el creador y la lista completa de miembros. Cada miembro y el
+creador SHALL identificarse con `id`, `nombre`, `apellido`, `ci` y `username`, y
+la respuesta MUST NOT incluir contraseñas ni sus hashes. Si el grupo no existe, el
+sistema SHALL responder `404 Not Found`. Si el grupo existe pero el usuario
+autenticado no es miembro, el sistema SHALL responder `403 Forbidden`. Ambos
+errores SHALL usar el formato de error estándar.
+
+#### Scenario: Un miembro consulta el grupo
+
+- **WHEN** un usuario autenticado que es miembro del grupo envía
+  `GET /api/grupos/{id}`
+- **THEN** el sistema responde `200 OK` con `nombre`, `descripcion`, `creador` y
+  `miembros`
+- **AND** la lista `miembros` incluye a todos los participantes del grupo,
+  incluido el creador
+- **AND** ningún elemento de la respuesta contiene contraseña ni su hash
+
+#### Scenario: Un no miembro consulta el grupo
+
+- **WHEN** un usuario autenticado que no es miembro del grupo envía
+  `GET /api/grupos/{id}`
+- **THEN** el sistema responde `403 Forbidden` con el formato de error estándar
+
+#### Scenario: El grupo no existe
+
+- **WHEN** un usuario autenticado envía `GET /api/grupos/{id}` con un `id`
+  inexistente
+- **THEN** el sistema responde `404 Not Found` con el formato de error estándar
+
+#### Scenario: Petición sin token
+
+- **WHEN** se envía `GET /api/grupos/{id}` sin token válido
+- **THEN** el sistema responde `401 Unauthorized` con el formato de error estándar
+
+### Requirement: Editar un grupo
+
+El sistema SHALL exponer `PUT /api/grupos/{id}` que permite actualizar `nombre`
+y/o `descripcion` del grupo. La operación SHALL estar reservada al creador del
+grupo. Cuando el solicitante es el creador y los datos son válidos, el sistema
+SHALL responder `200 OK` con el grupo actualizado y su lista de miembros. El
+sistema SHALL responder `403 Forbidden` cuando el solicitante es miembro pero no
+creador, y también cuando no es miembro. El sistema SHALL responder `404 Not
+Found` cuando el grupo no existe, y `400 Bad Request` cuando `nombre` está vacío o
+solo contiene espacios. La edición MUST NOT alterar la lista de miembros ni el
+creador del grupo.
+
+#### Scenario: El creador edita el grupo
+
+- **WHEN** el creador envía `PUT /api/grupos/{id}` con un `nombre` y una
+  `descripcion` válidos
+- **THEN** el sistema responde `200 OK` con los valores actualizados
+- **AND** el creador y la lista de miembros permanecen sin cambios
+
+#### Scenario: Un miembro no creador intenta editar
+
+- **WHEN** un miembro que no es el creador envía `PUT /api/grupos/{id}`
+- **THEN** el sistema responde `403 Forbidden` con el formato de error estándar
+- **AND** el grupo no se modifica
+
+#### Scenario: Un no miembro intenta editar
+
+- **WHEN** un usuario autenticado que no es miembro del grupo envía
+  `PUT /api/grupos/{id}`
+- **THEN** el sistema responde `403 Forbidden` con el formato de error estándar
+
+#### Scenario: Nombre vacío
+
+- **WHEN** el creador envía `PUT /api/grupos/{id}` con `nombre` ausente, vacío o
+  solo con espacios
+- **THEN** el sistema responde `400 Bad Request` con el formato de error estándar
+- **AND** el grupo no se modifica
+
+#### Scenario: El grupo no existe
+
+- **WHEN** un usuario autenticado envía `PUT /api/grupos/{id}` con un `id`
+  inexistente
+- **THEN** el sistema responde `404 Not Found` con el formato de error estándar
+
+### Requirement: Eliminar un grupo
+
+El sistema SHALL exponer `DELETE /api/grupos/{id}` reservado al creador del grupo.
+Cuando el solicitante es el creador, el sistema SHALL eliminar el grupo junto con
+todos sus registros de membresía y SHALL responder `204 No Content` sin cuerpo.
+Tras la eliminación, el grupo MUST NOT aparecer en `GET /api/grupos` de ninguno de
+sus antiguos miembros y `GET /api/grupos/{id}` SHALL responder `404 Not Found`. El
+sistema SHALL responder `403 Forbidden` cuando el solicitante es miembro pero no
+creador, o cuando no es miembro, y `404 Not Found` cuando el grupo no existe.
+
+#### Scenario: El creador elimina el grupo
+
+- **WHEN** el creador envía `DELETE /api/grupos/{id}`
+- **THEN** el sistema responde `204 No Content` sin cuerpo
+- **AND** se eliminan también todos los registros de membresía del grupo
+- **AND** una consulta posterior a `GET /api/grupos/{id}` responde `404 Not Found`
+
+#### Scenario: Un miembro no creador intenta eliminar
+
+- **WHEN** un miembro que no es el creador envía `DELETE /api/grupos/{id}`
+- **THEN** el sistema responde `403 Forbidden` con el formato de error estándar
+- **AND** el grupo sigue existiendo
+
+#### Scenario: El grupo no existe
+
+- **WHEN** un usuario autenticado envía `DELETE /api/grupos/{id}` con un `id`
+  inexistente
+- **THEN** el sistema responde `404 Not Found` con el formato de error estándar
+
+### Requirement: Agregar un miembro al grupo
+
+El sistema SHALL exponer `POST /api/grupos/{id}/miembros` reservado al creador del
+grupo. El cuerpo SHALL aceptar `participanteId` (obligatorio). Cuando el
+participante existe y aún no pertenece al grupo, el sistema SHALL agregarlo y
+SHALL responder `201 Created` con la lista actualizada de miembros del grupo. El
+sistema SHALL responder `409 Conflict` cuando el participante ya es miembro,
+`404 Not Found` cuando el grupo o el participante no existen, `400 Bad Request`
+cuando falta `participanteId`, y `403 Forbidden` cuando el solicitante no es el
+creador del grupo. Todos los errores SHALL usar el formato de error estándar.
+
+#### Scenario: El creador agrega un participante nuevo
+
+- **WHEN** el creador envía `POST /api/grupos/{id}/miembros` con el
+  `participanteId` de alguien que aún no es miembro
+- **THEN** el sistema responde `201 Created` con la lista actualizada de miembros
+- **AND** la lista incluye al participante agregado
+- **AND** ese participante ve el grupo en su `GET /api/grupos`
+
+#### Scenario: El participante ya es miembro
+
+- **WHEN** el creador envía `POST /api/grupos/{id}/miembros` con el
+  `participanteId` de alguien que ya pertenece al grupo
+- **THEN** el sistema responde `409 Conflict` con el formato de error estándar
+- **AND** la membresía del grupo no cambia
+
+#### Scenario: El participante no existe
+
+- **WHEN** el creador envía `POST /api/grupos/{id}/miembros` con un
+  `participanteId` inexistente
+- **THEN** el sistema responde `404 Not Found` con el formato de error estándar
+
+#### Scenario: Falta el participanteId
+
+- **WHEN** el creador envía `POST /api/grupos/{id}/miembros` sin `participanteId`
+- **THEN** el sistema responde `400 Bad Request` con el formato de error estándar
+
+#### Scenario: Un miembro no creador intenta agregar
+
+- **WHEN** un miembro que no es el creador envía `POST /api/grupos/{id}/miembros`
+- **THEN** el sistema responde `403 Forbidden` con el formato de error estándar
+- **AND** la membresía del grupo no cambia
+
+### Requirement: Quitar un miembro del grupo
+
+El sistema SHALL exponer `DELETE /api/grupos/{id}/miembros/{participanteId}`
+reservado al creador del grupo. Cuando el participante es miembro del grupo y no
+es el creador, el sistema SHALL eliminar su membresía y SHALL responder `204 No
+Content` sin cuerpo. El sistema SHALL responder `400 Bad Request` cuando el
+`participanteId` corresponde al creador del grupo, porque el creador no puede
+quitarse a sí mismo. El sistema SHALL responder `404 Not Found` cuando el grupo no
+existe o cuando el participante indicado no es miembro del grupo, y
+`403 Forbidden` cuando el solicitante no es el creador.
+
+#### Scenario: El creador quita a un miembro
+
+- **WHEN** el creador envía `DELETE /api/grupos/{id}/miembros/{participanteId}`
+  con el id de un miembro distinto de sí mismo
+- **THEN** el sistema responde `204 No Content` sin cuerpo
+- **AND** ese participante ya no aparece en los miembros del grupo
+- **AND** ese participante deja de ver el grupo en su `GET /api/grupos`
+
+#### Scenario: El creador intenta quitarse a sí mismo
+
+- **WHEN** el creador envía `DELETE /api/grupos/{id}/miembros/{participanteId}`
+  con su propio `participanteId`
+- **THEN** el sistema responde `400 Bad Request` con el formato de error estándar
+- **AND** la membresía del grupo no cambia
+
+#### Scenario: El participante no es miembro del grupo
+
+- **WHEN** el creador envía `DELETE /api/grupos/{id}/miembros/{participanteId}`
+  con el id de un participante que no pertenece al grupo
+- **THEN** el sistema responde `404 Not Found` con el formato de error estándar
+
+#### Scenario: Un miembro no creador intenta quitar a otro
+
+- **WHEN** un miembro que no es el creador envía
+  `DELETE /api/grupos/{id}/miembros/{participanteId}`
+- **THEN** el sistema responde `403 Forbidden` con el formato de error estándar
+- **AND** la membresía del grupo no cambia
+
+#### Scenario: Un miembro intenta abandonar el grupo por su cuenta
+
+- **WHEN** un miembro que no es el creador envía
+  `DELETE /api/grupos/{id}/miembros/{participanteId}` con su propio id
+- **THEN** el sistema responde `403 Forbidden` con el formato de error estándar
+- **AND** sigue siendo miembro del grupo
