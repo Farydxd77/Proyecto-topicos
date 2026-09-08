@@ -48,6 +48,7 @@ class BalanceControllerTest {
     private MockMvc mockMvc;
 
     private String tokenAna;
+    private String tokenBeto;
     private String tokenExtrano;
     private Long grupoId;
     private Long idAna;
@@ -61,7 +62,7 @@ class BalanceControllerTest {
         long marca = System.nanoTime();
 
         tokenAna = registrar("bal-ana-" + marca, "Ana", "Perez", "CI-A" + marca);
-        registrar("bal-beto-" + marca, "Beto", "Lopez", "CI-B" + marca);
+        tokenBeto = registrar("bal-beto-" + marca, "Beto", "Lopez", "CI-B" + marca);
         registrar("bal-carla-" + marca, "Carla", "Diaz", "CI-C" + marca);
         registrar("bal-diego-" + marca, "Diego", "Ruiz", "CI-D" + marca);
         tokenExtrano = registrar("bal-x-" + marca, "Equis", "Equis", "CI-X" + marca);
@@ -123,6 +124,16 @@ class BalanceControllerTest {
                 """.formatted(idAna);
         mockMvc.perform(post("/api/grupos/{id}/gastos", grupoId)
                         .header("Authorization", bearer(tokenAna))
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated());
+    }
+
+    private void registrarPago(String token, Long receptorId, String monto, String fecha) throws Exception {
+        String body = """
+                {"receptorId":%d,"monto":%s,"fecha":"%s"}
+                """.formatted(receptorId, monto, fecha);
+        mockMvc.perform(post("/api/grupos/{id}/pagos", grupoId)
+                        .header("Authorization", bearer(token))
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated());
     }
@@ -262,5 +273,52 @@ class BalanceControllerTest {
         mockMvc.perform(get("/api/grupos/{id}/liquidacion", grupoId))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.status").value(401));
+    }
+
+    // 6.6 Pagos: impacto en balances y liquidación -----------------
+
+    @Test
+    void balances_conPagoDeBetoAAna_descuentanLaDeuda() throws Exception {
+        registrarGastoSamaipata();
+        registrarPago(tokenBeto, idAna, "200.00", "2026-09-02");
+
+        String balances = mockMvc.perform(get("/api/grupos/{id}/balances", grupoId)
+                        .header("Authorization", bearer(tokenAna)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Map<String, BigDecimal> porNombre = balancesPorNombre(balances);
+        assertThat(porNombre.get("Ana")).isEqualByComparingTo("400.00");
+        assertThat(porNombre.get("Beto")).isEqualByComparingTo("0.00");
+        assertThat(porNombre.get("Carla")).isEqualByComparingTo("-200.00");
+        assertThat(porNombre.get("Diego")).isEqualByComparingTo("-200.00");
+        assertThat(sumaBalances(balances)).isEqualByComparingTo("0.00");
+
+        String liquidacion = mockMvc.perform(get("/api/grupos/{id}/liquidacion", grupoId)
+                        .header("Authorization", bearer(tokenAna)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andReturn().getResponse().getContentAsString();
+
+        for (JsonNode t : objectMapper.readTree(liquidacion)) {
+            assertThat(t.get("para").asString()).isEqualTo("Ana");
+            assertThat(t.get("de").asString()).isIn("Carla", "Diego");
+            assertThat(new BigDecimal(t.get("monto").asString())).isEqualByComparingTo("200.00");
+        }
+    }
+
+    @Test
+    void balances_pagoSinGastos_dejaAlPagadorAcreedorYSumaCero() throws Exception {
+        registrarPago(tokenBeto, idAna, "50.00", "2026-09-02");
+
+        String balances = mockMvc.perform(get("/api/grupos/{id}/balances", grupoId)
+                        .header("Authorization", bearer(tokenAna)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Map<String, BigDecimal> porNombre = balancesPorNombre(balances);
+        assertThat(porNombre.get("Beto")).isEqualByComparingTo("50.00");
+        assertThat(porNombre.get("Ana")).isEqualByComparingTo("-50.00");
+        assertThat(sumaBalances(balances)).isEqualByComparingTo("0.00");
     }
 }

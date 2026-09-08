@@ -122,6 +122,90 @@ class BalanceUtilTest {
         assertThat(balances.keySet()).containsExactly(10L, 20L, 30L);
     }
 
+    // 5.1b calcularBalances con pagos -------------------------------------
+
+    @Test
+    void calcularBalances_pagoDelDeudorAlAcreedor_acercaAmbosACero() {
+        // Beto (id 2) le debe 200 a Ana (id 1) y le paga 200.
+        Map<Long, BigDecimal> pagado = new HashMap<>(Map.of(1L, bd("200.00")));
+        Map<Long, BigDecimal> adeudado = new HashMap<>(Map.of(2L, bd("200.00")));
+        Map<Long, BigDecimal> pagosRealizados = new HashMap<>(Map.of(2L, bd("200.00")));
+        Map<Long, BigDecimal> pagosRecibidos = new HashMap<>(Map.of(1L, bd("200.00")));
+
+        Map<Long, BigDecimal> balances = BalanceUtil.calcularBalances(
+                Set.of(1L, 2L), pagado, adeudado, pagosRealizados, pagosRecibidos);
+
+        assertThat(balances.get(1L)).isEqualByComparingTo("0.00");
+        assertThat(balances.get(2L)).isEqualByComparingTo("0.00");
+        assertThat(suma(balances)).isEqualByComparingTo("0.00");
+    }
+
+    @Test
+    void calcularBalances_samaipataConUnPagoDe200DeBetoAAna() {
+        // Un gasto de 800 pagado por Ana (id 1) repartido entre {1,2,3,4}.
+        Map<Long, BigDecimal> pagado = new HashMap<>(Map.of(1L, bd("800.00")));
+        Map<Long, BigDecimal> adeudado = new HashMap<>(Map.of(
+                1L, bd("200.00"), 2L, bd("200.00"), 3L, bd("200.00"), 4L, bd("200.00")));
+        Map<Long, BigDecimal> pagosRealizados = new HashMap<>(Map.of(2L, bd("200.00")));
+        Map<Long, BigDecimal> pagosRecibidos = new HashMap<>(Map.of(1L, bd("200.00")));
+
+        Map<Long, BigDecimal> balances = BalanceUtil.calcularBalances(
+                Set.of(1L, 2L, 3L, 4L), pagado, adeudado, pagosRealizados, pagosRecibidos);
+
+        assertThat(balances.get(1L)).isEqualByComparingTo("400.00");
+        assertThat(balances.get(2L)).isEqualByComparingTo("0.00");
+        assertThat(balances.get(3L)).isEqualByComparingTo("-200.00");
+        assertThat(balances.get(4L)).isEqualByComparingTo("-200.00");
+        assertThat(suma(balances)).isEqualByComparingTo("0.00");
+    }
+
+    @Test
+    void calcularBalances_gastosNoExactosConPagos_sumaExactamenteCero() {
+        // 100.00 entre 3 (pagador id 1) más un pago parcial de 10.00 de id 2 a id 1.
+        Map<Long, BigDecimal> pagado = new HashMap<>(Map.of(1L, bd("100.00")));
+        Map<Long, BigDecimal> adeudado = new HashMap<>(Map.of(
+                1L, bd("33.34"), 2L, bd("33.33"), 3L, bd("33.33")));
+        Map<Long, BigDecimal> pagosRealizados = new HashMap<>(Map.of(2L, bd("10.00")));
+        Map<Long, BigDecimal> pagosRecibidos = new HashMap<>(Map.of(1L, bd("10.00")));
+
+        Map<Long, BigDecimal> balances = BalanceUtil.calcularBalances(
+                Set.of(1L, 2L, 3L), pagado, adeudado, pagosRealizados, pagosRecibidos);
+
+        assertThat(balances.get(1L)).isEqualByComparingTo("56.66");
+        assertThat(balances.get(2L)).isEqualByComparingTo("-23.33");
+        assertThat(balances.get(3L)).isEqualByComparingTo("-33.33");
+        assertThat(suma(balances)).isEqualByComparingTo("0.00");
+    }
+
+    @Test
+    void calcularBalances_pagoSobreElSaldo_dejaAlPagadorComoAcreedor() {
+        // Beto (id 2) debía 200 pero paga 300: queda como acreedor por 100.
+        Map<Long, BigDecimal> pagado = new HashMap<>(Map.of(1L, bd("200.00")));
+        Map<Long, BigDecimal> adeudado = new HashMap<>(Map.of(2L, bd("200.00")));
+        Map<Long, BigDecimal> pagosRealizados = new HashMap<>(Map.of(2L, bd("300.00")));
+        Map<Long, BigDecimal> pagosRecibidos = new HashMap<>(Map.of(1L, bd("300.00")));
+
+        Map<Long, BigDecimal> balances = BalanceUtil.calcularBalances(
+                Set.of(1L, 2L), pagado, adeudado, pagosRealizados, pagosRecibidos);
+
+        assertThat(balances.get(1L)).isEqualByComparingTo("-100.00");
+        assertThat(balances.get(2L)).isEqualByComparingTo("100.00");
+        assertThat(suma(balances)).isEqualByComparingTo("0.00");
+    }
+
+    @Test
+    void calcularBalances_sobrecargaDeTresArgumentos_equivaleASinPagos() {
+        Map<Long, BigDecimal> pagado = new HashMap<>(Map.of(1L, bd("90.00")));
+        Map<Long, BigDecimal> adeudado = new HashMap<>(Map.of(1L, bd("30.00"), 2L, bd("60.00")));
+
+        Map<Long, BigDecimal> conTres = BalanceUtil.calcularBalances(
+                Set.of(1L, 2L), pagado, adeudado);
+        Map<Long, BigDecimal> conCinco = BalanceUtil.calcularBalances(
+                Set.of(1L, 2L), pagado, adeudado, Map.of(), Map.of());
+
+        assertThat(conTres).isEqualTo(conCinco);
+    }
+
     // 5.2 minimizarTransferencias ----------------------------------------
 
     @Test

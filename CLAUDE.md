@@ -115,6 +115,16 @@ Todas las tablas tienen created_at y updated_at (TIMESTAMP NOT NULL)
 - monto_adeudado DECIMAL(10,2) NOT NULL
 - PK compuesta: (gasto_id, participante_id)
 
+### pagos
+- id BIGSERIAL PK
+- grupo_id BIGINT NOT NULL FK→grupos.id
+- pagador_id BIGINT NOT NULL FK→participantes.id
+- receptor_id BIGINT NOT NULL FK→participantes.id
+- monto DECIMAL(10,2) NOT NULL — siempre en USDT
+- fecha DATE NOT NULL
+- tx_id VARCHAR(100) nullable — hash de transacción blockchain, opcional
+- created_at, updated_at
+
 ## Convenciones
 - Tablas: snake_case plural (usuarios, participantes)
 - Columnas: snake_case (nombre_completo, created_at)

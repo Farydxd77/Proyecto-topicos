@@ -18,6 +18,7 @@ import com.cuentasclaras.backend.entity.Gasto;
 import com.cuentasclaras.backend.entity.GastoParticipante;
 import com.cuentasclaras.backend.entity.Grupo;
 import com.cuentasclaras.backend.entity.GrupoParticipante;
+import com.cuentasclaras.backend.entity.Pago;
 import com.cuentasclaras.backend.entity.Participante;
 import com.cuentasclaras.backend.entity.Usuario;
 import com.cuentasclaras.backend.exception.ForbiddenOperationException;
@@ -26,6 +27,7 @@ import com.cuentasclaras.backend.repository.GastoParticipanteRepository;
 import com.cuentasclaras.backend.repository.GastoRepository;
 import com.cuentasclaras.backend.repository.GrupoParticipanteRepository;
 import com.cuentasclaras.backend.repository.GrupoRepository;
+import com.cuentasclaras.backend.repository.PagoRepository;
 import com.cuentasclaras.backend.repository.ParticipanteRepository;
 import com.cuentasclaras.backend.repository.UsuarioRepository;
 import com.cuentasclaras.backend.util.BalanceUtil;
@@ -36,6 +38,7 @@ public class BalanceService {
 
     private final GastoRepository gastoRepository;
     private final GastoParticipanteRepository gastoParticipanteRepository;
+    private final PagoRepository pagoRepository;
     private final GrupoRepository grupoRepository;
     private final GrupoParticipanteRepository grupoParticipanteRepository;
     private final ParticipanteRepository participanteRepository;
@@ -44,12 +47,14 @@ public class BalanceService {
     public BalanceService(
             GastoRepository gastoRepository,
             GastoParticipanteRepository gastoParticipanteRepository,
+            PagoRepository pagoRepository,
             GrupoRepository grupoRepository,
             GrupoParticipanteRepository grupoParticipanteRepository,
             ParticipanteRepository participanteRepository,
             UsuarioRepository usuarioRepository) {
         this.gastoRepository = gastoRepository;
         this.gastoParticipanteRepository = gastoParticipanteRepository;
+        this.pagoRepository = pagoRepository;
         this.grupoRepository = grupoRepository;
         this.grupoParticipanteRepository = grupoParticipanteRepository;
         this.participanteRepository = participanteRepository;
@@ -62,7 +67,8 @@ public class BalanceService {
         Contexto ctx = cargarContexto(grupoId);
 
         Map<Long, BigDecimal> balances = BalanceUtil.calcularBalances(
-                ctx.participantes().keySet(), ctx.pagadoPorId(), ctx.adeudadoPorId());
+                ctx.participantes().keySet(), ctx.pagadoPorId(), ctx.adeudadoPorId(),
+                ctx.pagosRealizadosPorId(), ctx.pagosRecibidosPorId());
 
         return balances.entrySet().stream()
                 .map(e -> new BalanceDto(
@@ -76,7 +82,8 @@ public class BalanceService {
         Contexto ctx = cargarContexto(grupoId);
 
         Map<Long, BigDecimal> balances = BalanceUtil.calcularBalances(
-                ctx.participantes().keySet(), ctx.pagadoPorId(), ctx.adeudadoPorId());
+                ctx.participantes().keySet(), ctx.pagadoPorId(), ctx.adeudadoPorId(),
+                ctx.pagosRealizadosPorId(), ctx.pagosRecibidosPorId());
 
         return BalanceUtil.minimizarTransferencias(balances).stream()
                 .map(m -> new TransferenciaDto(
@@ -92,6 +99,8 @@ public class BalanceService {
         Map<Long, Participante> participantes = new HashMap<>();
         Map<Long, BigDecimal> pagado = new HashMap<>();
         Map<Long, BigDecimal> adeudado = new HashMap<>();
+        Map<Long, BigDecimal> pagosRealizados = new HashMap<>();
+        Map<Long, BigDecimal> pagosRecibidos = new HashMap<>();
 
         for (GrupoParticipante gp : grupoParticipanteRepository.findByGrupoId(grupoId)) {
             Participante p = gp.getParticipante();
@@ -114,13 +123,25 @@ public class BalanceService {
             }
         }
 
-        return new Contexto(participantes, pagado, adeudado);
+        // Los pagos ya están en USDT con escala 2 (garantizado por PagoService).
+        for (Pago pago : pagoRepository.findByGrupoIdOrderByFechaDesc(grupoId)) {
+            Participante pagador = pago.getPagador();
+            Participante receptor = pago.getReceptor();
+            participantes.putIfAbsent(pagador.getId(), pagador);
+            participantes.putIfAbsent(receptor.getId(), receptor);
+            pagosRealizados.merge(pagador.getId(), pago.getMonto(), BigDecimal::add);
+            pagosRecibidos.merge(receptor.getId(), pago.getMonto(), BigDecimal::add);
+        }
+
+        return new Contexto(participantes, pagado, adeudado, pagosRealizados, pagosRecibidos);
     }
 
     private record Contexto(
             Map<Long, Participante> participantes,
             Map<Long, BigDecimal> pagadoPorId,
-            Map<Long, BigDecimal> adeudadoPorId) {
+            Map<Long, BigDecimal> adeudadoPorId,
+            Map<Long, BigDecimal> pagosRealizadosPorId,
+            Map<Long, BigDecimal> pagosRecibidosPorId) {
     }
 
     private String nombreDe(Contexto ctx, Long participanteId) {

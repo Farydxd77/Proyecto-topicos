@@ -72,3 +72,19 @@
 
 > PK compuesta: (gasto_id, participante_id)
 > El pagador absorbe los centavos sobrantes del redondeo.
+
+## Tabla: pagos
+| Columna         | Tipo          | Restricciones              |
+|-----------------|---------------|----------------------------|
+| id              | BIGSERIAL     | PK                         |
+| grupo_id        | BIGINT        | NOT NULL, FK→grupos.id     |
+| pagador_id      | BIGINT        | NOT NULL, FK→participantes.id |
+| receptor_id     | BIGINT        | NOT NULL, FK→participantes.id |
+| monto           | DECIMAL(10,2) | NOT NULL — siempre en USDT |
+| fecha           | DATE          | NOT NULL                   |
+| tx_id           | VARCHAR(100)  | nullable                   |
+| created_at      | TIMESTAMP     | NOT NULL                   |
+| updated_at      | TIMESTAMP     | NOT NULL                   |
+
+> Pagos siempre en USDT. tx_id es el hash de transacción blockchain (opcional, solo referencia).
+> El sistema no verifica la transacción en blockchain.

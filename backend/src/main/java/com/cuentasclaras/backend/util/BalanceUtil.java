@@ -26,10 +26,8 @@ public final class BalanceUtil {
     }
 
     /**
-     * Balance neto de cada participante: lo que pagó menos lo que le corresponde
-     * adeudar. La suma de todos los balances es exactamente {@code 0.00} siempre
-     * que, para cada gasto, la suma de lo adeudado iguale su monto (invariante
-     * garantizado por la capacidad de gastos).
+     * Balance neto de cada participante considerando solo los gastos del grupo.
+     * Equivale a {@link #calcularBalances(Set, Map, Map, Map, Map)} sin pagos.
      *
      * @param participantesIds todos los participantes a incluir (miembros del
      *                          grupo y cualquiera con actividad en un gasto)
@@ -42,11 +40,42 @@ public final class BalanceUtil {
             Map<Long, BigDecimal> pagadoPorId,
             Map<Long, BigDecimal> adeudadoPorId) {
 
+        return calcularBalances(participantesIds, pagadoPorId, adeudadoPorId, Map.of(), Map.of());
+    }
+
+    /**
+     * Balance neto de cada participante: lo que pagó en gastos menos lo que le
+     * corresponde adeudar, más lo que pagó a otros y menos lo que recibió en
+     * pagos. Un pago del deudor al acreedor acerca ambos balances a cero. La
+     * suma de todos los balances es exactamente {@code 0.00} siempre que, para
+     * cada gasto, la suma de lo adeudado iguale su monto (invariante garantizado
+     * por la capacidad de gastos) y cada pago mueva su monto exacto entre dos
+     * participantes.
+     *
+     * @param participantesIds       todos los participantes a incluir (miembros del
+     *                                grupo y cualquiera con actividad en un gasto o pago)
+     * @param pagadoPorId            suma de los montos en USDT de los gastos que pagó cada id
+     * @param adeudadoPorId          suma de los {@code monto_adeudado} de cada id
+     * @param pagosRealizadosPorId   suma de los pagos que realizó cada id
+     * @param pagosRecibidosPorId    suma de los pagos que recibió cada id
+     * @return mapa id → balance con escala 2, ordenado por id ascendente
+     */
+    public static Map<Long, BigDecimal> calcularBalances(
+            Set<Long> participantesIds,
+            Map<Long, BigDecimal> pagadoPorId,
+            Map<Long, BigDecimal> adeudadoPorId,
+            Map<Long, BigDecimal> pagosRealizadosPorId,
+            Map<Long, BigDecimal> pagosRecibidosPorId) {
+
         Map<Long, BigDecimal> balances = new LinkedHashMap<>();
         participantesIds.stream().sorted().forEach(id -> {
             BigDecimal pagado = pagadoPorId.getOrDefault(id, BigDecimal.ZERO);
             BigDecimal adeudado = adeudadoPorId.getOrDefault(id, BigDecimal.ZERO);
-            balances.put(id, pagado.subtract(adeudado).setScale(2, RoundingMode.HALF_UP));
+            BigDecimal pagosRealizados = pagosRealizadosPorId.getOrDefault(id, BigDecimal.ZERO);
+            BigDecimal pagosRecibidos = pagosRecibidosPorId.getOrDefault(id, BigDecimal.ZERO);
+            BigDecimal balance = pagado.subtract(adeudado)
+                    .add(pagosRealizados).subtract(pagosRecibidos);
+            balances.put(id, balance.setScale(2, RoundingMode.HALF_UP));
         });
         return balances;
     }
