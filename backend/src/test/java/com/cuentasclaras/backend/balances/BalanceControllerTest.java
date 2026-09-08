@@ -2,6 +2,7 @@ package com.cuentasclaras.backend.balances;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -305,6 +306,77 @@ class BalanceControllerTest {
             assertThat(t.get("de").asString()).isIn("Carla", "Diego");
             assertThat(new BigDecimal(t.get("monto").asString())).isEqualByComparingTo("200.00");
         }
+    }
+
+    @Test
+    void balances_gastoConPagadorExcluido_leSubeElBalancePorElTotal() throws Exception {
+        // Ana paga 300.00 de algo que no consume; lo reparten Beto y Carla.
+        String body = """
+                {"descripcion":"Cena sin Ana","monto":300.00,"pagadorId":%d,"fecha":"2026-09-01",
+                 "division":[{"participanteId":%d,"peso":1},{"participanteId":%d,"peso":1}]}
+                """.formatted(idAna, idBeto, idCarla);
+        mockMvc.perform(post("/api/grupos/{id}/gastos", grupoId)
+                        .header("Authorization", bearer(tokenAna))
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated());
+
+        String balances = mockMvc.perform(get("/api/grupos/{id}/balances", grupoId)
+                        .header("Authorization", bearer(tokenAna)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Map<String, BigDecimal> porNombre = balancesPorNombre(balances);
+        assertThat(porNombre.get("Ana")).isEqualByComparingTo("300.00");
+        assertThat(porNombre.get("Beto")).isEqualByComparingTo("-150.00");
+        assertThat(porNombre.get("Carla")).isEqualByComparingTo("-150.00");
+        assertThat(porNombre.get("Diego")).isEqualByComparingTo("0.00");
+        assertThat(sumaBalances(balances)).isEqualByComparingTo("0.00");
+    }
+
+    // 6.4 Distinción entre miembros actuales y ex-miembros ---------------
+
+    @Test
+    void balances_incluyenEsMiembroActual() throws Exception {
+        registrarGastoSamaipata();
+
+        String balances = mockMvc.perform(get("/api/grupos/{id}/balances", grupoId)
+                        .header("Authorization", bearer(tokenAna)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        for (JsonNode entrada : objectMapper.readTree(balances)) {
+            assertThat(entrada.has("esMiembroActual")).isTrue();
+            assertThat(entrada.get("esMiembroActual").asBoolean()).isTrue();
+        }
+    }
+
+    @Test
+    void balances_exMiembroConDeuda_apareceConEsMiembroActualFalse() throws Exception {
+        registrarGastoSamaipata();
+
+        // Ana (creadora) quita a Beto, que quedó debiendo 200.00.
+        mockMvc.perform(delete("/api/grupos/{id}/miembros/{participanteId}", grupoId, idBeto)
+                        .header("Authorization", bearer(tokenAna)))
+                .andExpect(status().isNoContent());
+
+        String balances = mockMvc.perform(get("/api/grupos/{id}/balances", grupoId)
+                        .header("Authorization", bearer(tokenAna)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Map<String, Boolean> membresiaPorNombre = new HashMap<>();
+        for (JsonNode entrada : objectMapper.readTree(balances)) {
+            membresiaPorNombre.put(entrada.get("participante").get("nombre").asString(),
+                    entrada.get("esMiembroActual").asBoolean());
+        }
+
+        assertThat(membresiaPorNombre.get("Beto")).isFalse();
+        assertThat(membresiaPorNombre.get("Ana")).isTrue();
+        assertThat(membresiaPorNombre.get("Carla")).isTrue();
+
+        // Su deuda sigue en pie y la invariante de suma cero se mantiene.
+        assertThat(balancesPorNombre(balances).get("Beto")).isEqualByComparingTo("-200.00");
+        assertThat(sumaBalances(balances)).isEqualByComparingTo("0.00");
     }
 
     @Test

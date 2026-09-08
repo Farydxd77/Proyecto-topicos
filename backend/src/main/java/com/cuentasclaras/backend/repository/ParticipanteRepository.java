@@ -15,5 +15,5 @@ public interface ParticipanteRepository extends JpaRepository<Participante, Long
 
     List<Participante> findByApellidoContainingIgnoreCase(String apellido);
 
-    Optional<Participante> findByCi(String ci);
+    List<Participante> findAllByCi(String ci);
 }

@@ -4,6 +4,8 @@ import { Link } from 'react-router'
 import { crearGrupo, listarGrupos } from '../api/grupos'
 import { Boton } from '../components/Boton'
 import { Campo } from '../components/Campo'
+import { Card } from '../components/Card'
+import { EstadoVacio } from '../components/EstadoVacio'
 import { MensajeError } from '../components/MensajeError'
 import { CLAVE_GRUPOS } from '../lib/claves'
 import { estadoDe } from '../lib/estadoConsulta'
@@ -76,7 +78,7 @@ export function GruposPage() {
   const estado = estadoDe(consulta)
 
   if (estado.cargando) {
-    return <p className="text-slate-500">Cargando tus grupos…</p>
+    return <p className="text-tinta-500">Cargando tus grupos…</p>
   }
 
   if (estado.error) {
@@ -97,8 +99,8 @@ export function GruposPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Mis grupos</h1>
-          <p className="text-sm text-slate-600">
+          <h1 className="text-2xl font-semibold text-tinta-900">Mis grupos</h1>
+          <p className="text-sm text-tinta-600">
             Los grupos de los que formás parte.
           </p>
         </div>
@@ -108,38 +110,35 @@ export function GruposPage() {
       </div>
 
       {creando ? (
-        <section className="rounded-lg border border-slate-200 bg-white p-5">
-          <h2 className="mb-4 font-semibold text-slate-900">Nuevo grupo</h2>
+        <Card titulo="Nuevo grupo">
           <FormularioNuevoGrupo onListo={() => setCreando(false)} />
-        </section>
+        </Card>
       ) : null}
 
       {vacio && !creando ? (
         // Una lista vacía sin contexto se lee como un error. Se explica y se ofrece salida.
-        <section className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center">
-          <p className="font-medium text-slate-900">Todavía no tenés grupos</p>
-          <p className="mt-1 text-sm text-slate-600">
-            Creá uno para empezar a repartir gastos con tu gente.
-          </p>
-          <div className="mt-4 flex justify-center">
-            <Boton onClick={() => setCreando(true)}>Crear mi primer grupo</Boton>
-          </div>
-        </section>
+        <EstadoVacio
+          titulo="Todavía no tenés grupos"
+          descripcion="Un grupo es un viaje, una salida o cualquier plan donde varios ponen plata. Creá el primero y empezá a repartir gastos con tu gente."
+          accion={<Boton onClick={() => setCreando(true)}>Crear mi primer grupo</Boton>}
+        />
       ) : null}
 
       {!vacio ? (
-        <ul className="flex flex-col gap-3">
+        <ul className="grid gap-3 sm:grid-cols-2">
           {grupos.map((grupo) => (
             <li key={grupo.id}>
               <Link
                 to={`/grupos/${grupo.id}`}
-                className="block rounded-lg border border-slate-200 bg-white p-4 transition hover:border-emerald-400 hover:bg-emerald-50/40"
+                className="flex h-full flex-col rounded-xl border border-tinta-200 bg-white p-4 shadow-tarjeta transition-colors duration-150 hover:border-marca-300 hover:bg-marca-50/40"
               >
-                <p className="font-medium text-slate-900">{grupo.nombre}</p>
+                <p className="font-medium text-tinta-900">{grupo.nombre}</p>
                 {grupo.descripcion ? (
-                  <p className="mt-0.5 text-sm text-slate-600">{grupo.descripcion}</p>
+                  <p className="mt-0.5 line-clamp-2 text-sm text-tinta-600">
+                    {grupo.descripcion}
+                  </p>
                 ) : null}
-                <p className="mt-2 text-xs text-slate-500">
+                <p className="mt-auto pt-3 text-xs text-tinta-500">
                   Creado por {grupo.creador.nombre} {grupo.creador.apellido}
                 </p>
               </Link>

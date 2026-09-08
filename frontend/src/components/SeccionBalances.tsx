@@ -1,18 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
 import { obtenerBalances, obtenerLiquidacion } from '../api/balances'
 import { listarGastos } from '../api/gastos'
-import { obtenerPerfil } from '../api/perfil'
 import type { GrupoResponse } from '../api/types'
-import {
-  CLAVE_PERFIL,
-  claveBalances,
-  claveGastos,
-  claveLiquidacion,
-} from '../lib/claves'
+import { claveBalances, claveGastos, claveLiquidacion } from '../lib/claves'
 import { estadoDe } from '../lib/estadoConsulta'
-import { formatearMonto } from '../lib/formato'
 import { Boton } from './Boton'
+import { Card } from './Card'
+import { Etiqueta } from './Etiqueta'
 import { MensajeError } from './MensajeError'
+import { Monto, tonoDeSaldo } from './Monto'
 
 /**
  * Traduce el signo del balance a una frase.
@@ -23,22 +19,14 @@ import { MensajeError } from './MensajeError'
  * color acompaña pero no es el único indicador, para que funcione en escala de
  * grises y con daltonismo.
  */
-function leerBalance(balance: number): {
-  texto: string
-  monto: number
-  clase: string
-} {
-  if (balance > 0) {
-    return { texto: 'Le deben', monto: balance, clase: 'text-emerald-700' }
-  }
-  if (balance < 0) {
-    return { texto: 'Debe', monto: -balance, clase: 'text-red-700' }
-  }
-  return { texto: 'Está a mano', monto: 0, clase: 'text-slate-500' }
+function leerBalance(balance: number): string {
+  if (balance > 0) return 'Le deben'
+  if (balance < 0) return 'Debe'
+  return 'Está a mano'
 }
 
 function Cargando() {
-  return <p className="text-sm text-slate-500">Calculando…</p>
+  return <p className="text-sm text-tinta-500">Calculando…</p>
 }
 
 function ConError({ error, onReintentar }: { error: unknown; onReintentar: () => void }) {
@@ -52,7 +40,16 @@ function ConError({ error, onReintentar }: { error: unknown; onReintentar: () =>
   )
 }
 
-export function SeccionBalances({ grupo }: { grupo: GrupoResponse }) {
+export function SeccionBalances({
+  grupo,
+  participanteId,
+  onRegistrarPago,
+}: {
+  grupo: GrupoResponse
+  participanteId: number | null
+  /** Lleva a la pestaña de pagos con la transferencia precargada. */
+  onRegistrarPago: (precarga: { receptorId: number; monto: string }) => void
+}) {
   const balances = useQuery({
     queryKey: claveBalances(grupo.id),
     queryFn: () => obtenerBalances(grupo.id),
@@ -66,22 +63,19 @@ export function SeccionBalances({ grupo }: { grupo: GrupoResponse }) {
     queryKey: claveGastos(grupo.id),
     queryFn: () => listarGastos(grupo.id),
   })
-  const { data: perfil } = useQuery({ queryKey: CLAVE_PERFIL, queryFn: obtenerPerfil })
 
   const eBalances = estadoDe(balances)
   const eLiquidacion = estadoDe(liquidacion)
 
   const hayGastos = (gastos.data?.length ?? 0) > 0
-  const esMio = (participanteId: number) => perfil != null && perfil.id === participanteId
+  const esMio = (id: number) => participanteId != null && participanteId === id
 
   return (
-    <div className="flex flex-col gap-6">
-      <section className="rounded-lg border border-slate-200 bg-white p-5">
-        <h2 className="mb-1 font-semibold text-slate-900">Balances</h2>
-        <p className="mb-4 text-sm text-slate-600">
-          Cuánto le corresponde a cada integrante, en USDT.
-        </p>
-
+    <div className="flex flex-col gap-4">
+      <Card
+        titulo="Balances"
+        descripcion="Cuánto le corresponde a cada integrante, en USDT."
+      >
         {eBalances.cargando ? <Cargando /> : null}
         {eBalances.error ? (
           <ConError error={eBalances.error} onReintentar={() => balances.refetch()} />
@@ -89,31 +83,43 @@ export function SeccionBalances({ grupo }: { grupo: GrupoResponse }) {
 
         {eBalances.datos ? (
           <>
-            <ul className="flex flex-col divide-y divide-slate-100">
+            <ul className="flex flex-col divide-y divide-tinta-100">
               {eBalances.datos.map((b) => {
-                const lectura = leerBalance(b.balance)
                 const propio = esMio(b.participante.id)
                 return (
                   <li
                     key={b.participante.id}
-                    className={`flex items-center justify-between gap-3 px-2 py-2 ${
-                      propio ? 'rounded-md bg-emerald-50/60' : ''
+                    className={`flex items-center justify-between gap-3 px-2 py-2.5 ${
+                      propio ? 'rounded-lg bg-marca-50/60' : ''
                     }`}
                   >
-                    <span className="min-w-0 truncate text-slate-900">
-                      {b.participante.nombre} {b.participante.apellido}
-                      {propio ? (
-                        <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">
-                          Vos
-                        </span>
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="truncate text-tinta-900">
+                        {b.participante.nombre} {b.participante.apellido}
+                      </span>
+                      {propio ? <Etiqueta tono="marca">Vos</Etiqueta> : null}
+                      {/* Sin esta marca, alguien que salió debiendo se ve igual que
+                          un integrante y no se entiende por qué está en la lista. */}
+                      {!b.esMiembroActual ? (
+                        <Etiqueta
+                          tono="aviso"
+                          title="Ya no integra el grupo, pero conserva saldo pendiente"
+                        >
+                          Ya no integra el grupo
+                        </Etiqueta>
                       ) : null}
                     </span>
-                    <span className={`shrink-0 text-sm ${lectura.clase}`}>
-                      {lectura.texto}
+                    <span className="flex shrink-0 items-baseline gap-1.5">
+                      <span className="text-sm text-tinta-600">
+                        {leerBalance(b.balance)}
+                      </span>
                       {b.balance !== 0 ? (
-                        <span className="ml-1 font-medium tabular-nums">
-                          {formatearMonto(lectura.monto)} USDT
-                        </span>
+                        <Monto
+                          valor={b.balance}
+                          tamano="chico"
+                          tono={tonoDeSaldo(b.balance)}
+                          absoluto
+                        />
                       ) : null}
                     </span>
                   </li>
@@ -121,20 +127,18 @@ export function SeccionBalances({ grupo }: { grupo: GrupoResponse }) {
               })}
             </ul>
             {!hayGastos ? (
-              <p className="mt-3 text-sm text-slate-600">
+              <p className="mt-3 text-sm text-tinta-600">
                 Todavía no hay gastos registrados, así que no hay nada que saldar.
               </p>
             ) : null}
           </>
         ) : null}
-      </section>
+      </Card>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-5">
-        <h2 className="mb-1 font-semibold text-slate-900">Liquidación</h2>
-        <p className="mb-4 text-sm text-slate-600">
-          La menor cantidad de transferencias para que todos queden a mano.
-        </p>
-
+      <Card
+        titulo="Liquidación"
+        descripcion="La menor cantidad de transferencias para que todos queden a mano."
+      >
         {eLiquidacion.cargando ? <Cargando /> : null}
         {eLiquidacion.error ? (
           <ConError
@@ -144,7 +148,7 @@ export function SeccionBalances({ grupo }: { grupo: GrupoResponse }) {
         ) : null}
 
         {eLiquidacion.datos && eLiquidacion.datos.length === 0 ? (
-          <p className="rounded-md border border-dashed border-slate-300 p-4 text-center text-sm text-slate-700">
+          <p className="rounded-lg border border-dashed border-tinta-300 p-5 text-center text-sm text-tinta-700">
             {hayGastos
               ? 'Ya están todos a mano: no queda nada por pagar.'
               : 'Todavía no hay nada que saldar.'}
@@ -158,26 +162,41 @@ export function SeccionBalances({ grupo }: { grupo: GrupoResponse }) {
               return (
                 <li
                   key={`${t.deId}-${t.paraId}-${i}`}
-                  className={`flex flex-wrap items-center justify-between gap-2 rounded-md border p-3 ${
-                    meToca
-                      ? 'border-emerald-300 bg-emerald-50/60'
-                      : 'border-slate-200'
+                  className={`flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3.5 ${
+                    meToca ? 'border-marca-300 bg-marca-50/60' : 'border-tinta-200'
                   }`}
                 >
-                  <span className="text-slate-900">
+                  <span className="min-w-0 truncate text-tinta-900">
                     <span className="font-medium">{t.de}</span>
-                    <span className="mx-2 text-slate-400">→</span>
+                    <span className="mx-2 text-tinta-400">→</span>
                     <span className="font-medium">{t.para}</span>
                   </span>
-                  <span className="shrink-0 font-medium tabular-nums text-slate-900">
-                    {formatearMonto(t.monto)} USDT
+                  <span className="flex shrink-0 items-center gap-3">
+                    <Monto valor={t.monto} />
+                    {/* Sin esto la liquidación es una lista de tareas que hay que
+                        transcribir a mano en la pestaña de pagos. Solo se ofrece a
+                        quien paga: el backend no deja registrar un pago ajeno. */}
+                    {esMio(t.deId) ? (
+                      <Boton
+                        variante="secundario"
+                        tamano="chico"
+                        onClick={() =>
+                          onRegistrarPago({
+                            receptorId: t.paraId,
+                            monto: String(t.monto),
+                          })
+                        }
+                      >
+                        Registrar este pago
+                      </Boton>
+                    ) : null}
                   </span>
                 </li>
               )
             })}
           </ul>
         ) : null}
-      </section>
+      </Card>
     </div>
   )
 }

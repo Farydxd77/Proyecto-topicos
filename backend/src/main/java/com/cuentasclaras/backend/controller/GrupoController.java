@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.cuentasclaras.backend.dto.request.ActualizarGrupoRequest;
 import com.cuentasclaras.backend.dto.request.AgregarMiembroRequest;
 import com.cuentasclaras.backend.dto.request.CrearGrupoRequest;
+import com.cuentasclaras.backend.dto.request.TransferirCreadorRequest;
 import com.cuentasclaras.backend.dto.response.GrupoResponse;
 import com.cuentasclaras.backend.dto.response.GrupoResumenDto;
 import com.cuentasclaras.backend.service.GrupoService;
@@ -67,6 +68,13 @@ public class GrupoController {
             @PathVariable Long id,
             @Valid @RequestBody AgregarMiembroRequest request) {
         return grupoService.agregarMiembro(id, request);
+    }
+
+    @PutMapping("/{id}/creador")
+    public GrupoResponse transferirCreador(
+            @PathVariable Long id,
+            @Valid @RequestBody TransferirCreadorRequest request) {
+        return grupoService.transferirCreador(id, request);
     }
 
     @DeleteMapping("/{id}/miembros/{participanteId}")

@@ -67,14 +67,45 @@ public final class BalanceUtil {
             Map<Long, BigDecimal> pagosRealizadosPorId,
             Map<Long, BigDecimal> pagosRecibidosPorId) {
 
+        return calcularBalances(participantesIds, pagadoPorId, adeudadoPorId,
+                pagosRealizadosPorId, pagosRecibidosPorId, Map.of());
+    }
+
+    /**
+     * Balance neto incluyendo el efecto de las bajas que el grupo asumió.
+     *
+     * <p>El ajuste de una baja es un único número con signo por participante: lo que
+     * esa baja le suma o le resta a su balance. Quien se fue recibe {@code -saldo},
+     * que lo lleva exactamente a cero; cada quien lo absorbe recibe su parte de ese
+     * saldo. Como las partes suman el saldo, el ajuste de una baja suma cero entre
+     * todos, y por eso la suma de todos los balances sigue dando exactamente cero.
+     *
+     * <p>Un solo número con signo cubre las dos direcciones. Si quien se fue debía
+     * 300, recibe {@code +300} y los demás {@code -150} cada uno: sus balances bajan.
+     * Si le debían 300 a él, recibe {@code -300} y los demás {@code +150}: sus
+     * balances suben, porque dejan de deberle.
+     *
+     * @param ajusteBajasPorId lo que las bajas asumidas le suman (o restan) a cada
+     *                         participante
+     */
+    public static Map<Long, BigDecimal> calcularBalances(
+            Set<Long> participantesIds,
+            Map<Long, BigDecimal> pagadoPorId,
+            Map<Long, BigDecimal> adeudadoPorId,
+            Map<Long, BigDecimal> pagosRealizadosPorId,
+            Map<Long, BigDecimal> pagosRecibidosPorId,
+            Map<Long, BigDecimal> ajusteBajasPorId) {
+
         Map<Long, BigDecimal> balances = new LinkedHashMap<>();
         participantesIds.stream().sorted().forEach(id -> {
             BigDecimal pagado = pagadoPorId.getOrDefault(id, BigDecimal.ZERO);
             BigDecimal adeudado = adeudadoPorId.getOrDefault(id, BigDecimal.ZERO);
             BigDecimal pagosRealizados = pagosRealizadosPorId.getOrDefault(id, BigDecimal.ZERO);
             BigDecimal pagosRecibidos = pagosRecibidosPorId.getOrDefault(id, BigDecimal.ZERO);
+            BigDecimal ajusteBajas = ajusteBajasPorId.getOrDefault(id, BigDecimal.ZERO);
             BigDecimal balance = pagado.subtract(adeudado)
-                    .add(pagosRealizados).subtract(pagosRecibidos);
+                    .add(pagosRealizados).subtract(pagosRecibidos)
+                    .add(ajusteBajas);
             balances.put(id, balance.setScale(2, RoundingMode.HALF_UP));
         });
         return balances;

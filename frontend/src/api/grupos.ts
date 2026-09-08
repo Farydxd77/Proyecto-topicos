@@ -5,6 +5,7 @@ import type {
   CrearGrupoRequest,
   GrupoResponse,
   GrupoResumenDto,
+  TransferirCreadorRequest,
 } from './types'
 
 /** Los grupos donde el usuario autenticado es miembro. Vacío si no pertenece a ninguno. */
@@ -51,11 +52,41 @@ export function agregarMiembro(
 }
 
 /**
- * Reservado al creador. Responde 204 sin cuerpo.
- * 400 si el participanteId es el del creador, 404 si no es miembro del grupo.
+ * Quita a OTRO miembro: reservado al creador. Responde 204 sin cuerpo.
+ * 400 si el participanteId es el del creador, 403 si quien pide no es el creador,
+ * 404 si esa persona no es miembro del grupo.
  */
 export function quitarMiembro(grupoId: number, participanteId: number): Promise<void> {
   return apiFetch<void>(`/grupos/${grupoId}/miembros/${participanteId}`, {
     method: 'DELETE',
+  })
+}
+
+/**
+ * Salida voluntaria. Es la MISMA ruta que `quitarMiembro`: el backend distingue las
+ * dos operaciones por quién las pide. Se expone aparte porque la intención, el
+ * permiso y lo que hay que hacer después (irse del grupo) son distintos.
+ * 400 si quien sale es el creador: primero tiene que transferir el rol o eliminar
+ * el grupo.
+ */
+export function abandonarGrupo(grupoId: number, participanteId: number): Promise<void> {
+  return apiFetch<void>(`/grupos/${grupoId}/miembros/${participanteId}`, {
+    method: 'DELETE',
+  })
+}
+
+/**
+ * Reservado al creador actual. Devuelve el grupo COMPLETO ya actualizado, así que su
+ * respuesta se puede sembrar en el caché del detalle.
+ * 400 si el destinatario no es miembro o ya es el creador, 403 si quien pide no es
+ * el creador.
+ */
+export function transferirCreador(
+  grupoId: number,
+  datos: TransferirCreadorRequest,
+): Promise<GrupoResponse> {
+  return apiFetch<GrupoResponse>(`/grupos/${grupoId}/creador`, {
+    method: 'PUT',
+    body: datos,
   })
 }

@@ -1,23 +1,40 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { Link, Outlet, useNavigate, useOutletContext, useParams } from 'react-router'
 import { ApiError } from '../api/client'
+import { listarBajas } from '../api/bajas'
 import { actualizarGrupo, eliminarGrupo, obtenerGrupo } from '../api/grupos'
 import { obtenerPerfil } from '../api/perfil'
 import type { GrupoResponse } from '../api/types'
 import { Boton } from '../components/Boton'
 import { Campo } from '../components/Campo'
-import { GestionMiembros } from '../components/GestionMiembros'
+import { Card } from '../components/Card'
 import { MensajeError } from '../components/MensajeError'
-import { SeccionBalances } from '../components/SeccionBalances'
-import { SeccionGastos } from '../components/SeccionGastos'
-import { CLAVE_GRUPOS, CLAVE_PERFIL, claveGrupo } from '../lib/claves'
+import { Pestanas } from '../components/Pestanas'
+import { CLAVE_GRUPOS, CLAVE_PERFIL, claveBajas, claveGrupo } from '../lib/claves'
 import { estadoDe } from '../lib/estadoConsulta'
 import { soloErrores, validarNombreGrupo } from '../lib/validacion'
 
 /**
- * Un 404 y un 403 son situaciones distintas para quien las vive: "este grupo no
- * existe" frente a "existe pero no es tuyo". Se explican por separado, y con una
+ * Lo que el layout le pasa a cada pestaña por el `Outlet`.
+ *
+ * El grupo se consulta UNA vez acá, no en cada pantalla: como las pestañas son rutas
+ * hijas, cambiar de pestaña no desmonta el layout y la consulta no se repite.
+ */
+export interface ContextoGrupo {
+  grupo: GrupoResponse
+  esCreador: boolean
+  /** El participante propio, o null mientras el perfil no esté disponible. */
+  participanteId: number | null
+}
+
+export function useGrupo(): ContextoGrupo {
+  return useOutletContext<ContextoGrupo>()
+}
+
+/**
+ * Un 404 y un 403 son situaciones distintas para quien las vive: «este grupo no
+ * existe» frente a «existe pero no es tuyo». Se explican por separado, y con una
  * salida a mano en lugar de redirigir sin avisar.
  */
 function SinAcceso({ error }: { error: unknown }) {
@@ -31,17 +48,22 @@ function SinAcceso({ error }: { error: unknown }) {
         : null
 
   return (
-    <div className="flex flex-col items-start gap-3">
+    <div className="mx-auto max-w-md py-16 text-center">
       {texto ? (
-        <p role="alert" className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+        <p role="alert" className="text-tinta-700">
           {texto}
         </p>
       ) : (
         <MensajeError error={error} />
       )}
-      <Link to="/grupos" className="text-sm font-medium text-emerald-700 hover:underline">
-        Volver a mis grupos
-      </Link>
+      <div className="mt-4">
+        <Link
+          to="/grupos"
+          className="text-sm font-medium text-marca-700 hover:text-marca-800 hover:underline"
+        >
+          ← Volver a mis grupos
+        </Link>
+      </div>
     </div>
   )
 }
@@ -104,7 +126,6 @@ function FormularioEditar({
         <Boton type="submit" enCurso={mutacion.isPending}>
           Guardar cambios
         </Boton>
-        {/* Cancelar descarta y restaura: el estado local se descarta al desmontar. */}
         <Boton variante="secundario" onClick={onListo}>
           Cancelar
         </Boton>
@@ -133,12 +154,10 @@ function ConfirmarEliminar({
   })
 
   return (
-    <div className="rounded-lg border border-red-300 bg-red-50 p-5">
-      <p className="font-medium text-red-900">
-        ¿Eliminar «{grupo.nombre}»?
-      </p>
-      <p className="mt-1 text-sm text-red-800">
-        Se eliminará el grupo y a todos sus miembros. Esta acción no se puede deshacer.
+    <Card tono="aviso">
+      <p className="font-medium text-tinta-900">¿Eliminar «{grupo.nombre}»?</p>
+      <p className="mt-1 text-sm text-tinta-700">
+        Se borran el grupo, sus miembros, sus gastos y sus pagos. No se puede deshacer.
       </p>
 
       <div className="mt-3">
@@ -146,18 +165,18 @@ function ConfirmarEliminar({
       </div>
 
       <div className="mt-4 flex gap-3">
-        <Boton onClick={() => mutacion.mutate()} enCurso={mutacion.isPending}>
+        <Boton variante="peligro" onClick={() => mutacion.mutate()} enCurso={mutacion.isPending}>
           Sí, eliminar
         </Boton>
         <Boton variante="secundario" onClick={onCancelar}>
           Cancelar
         </Boton>
       </div>
-    </div>
+    </Card>
   )
 }
 
-export function GrupoDetallePage() {
+export function GrupoLayout() {
   const { id } = useParams()
   const grupoId = Number(id)
   const [editando, setEditando] = useState(false)
@@ -177,12 +196,19 @@ export function GrupoDetallePage() {
   // proyecto es que AuthContext guarda solo el token y nada que venga del backend.
   const { data: perfil } = useQuery({ queryKey: CLAVE_PERFIL, queryFn: obtenerPerfil })
 
+  // Solo para el punto de atención en la pestaña de miembros. Es barata y la pestaña
+  // de miembros la reusa del caché.
+  const { data: bajas } = useQuery({
+    queryKey: claveBajas(grupoId),
+    queryFn: () => listarBajas(grupoId),
+    enabled: consulta.isSuccess,
+  })
+
   const estado = estadoDe(consulta)
 
   if (estado.cargando) {
-    return <p className="text-slate-500">Cargando el grupo…</p>
+    return <p className="py-16 text-center text-tinta-500">Cargando el grupo…</p>
   }
-
   if (estado.error || !estado.datos) {
     return <SinAcceso error={estado.error} />
   }
@@ -191,54 +217,75 @@ export function GrupoDetallePage() {
   // Mientras el perfil no esté disponible se trata como no creador: es preferible que
   // una acción aparezca tarde a que aparezca y desaparezca.
   const esCreador = perfil != null && perfil.id === grupo.creador.id
+  const hayBajasPendientes = (bajas ?? []).some((b) => b.estado === 'PENDIENTE')
+
+  const contexto: ContextoGrupo = {
+    grupo,
+    esCreador,
+    participanteId: perfil?.id ?? null,
+  }
+
+  const base = `/grupos/${grupo.id}`
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Link to="/grupos" className="text-sm text-slate-500 hover:text-slate-800">
+        <Link
+          to="/grupos"
+          className="text-sm text-tinta-500 transition-colors hover:text-tinta-800"
+        >
           ← Mis grupos
         </Link>
       </div>
 
       {editando ? (
-        <section className="rounded-lg border border-slate-200 bg-white p-5">
-          <h2 className="mb-4 font-semibold text-slate-900">Editar grupo</h2>
+        <Card titulo="Editar grupo">
           <FormularioEditar grupo={grupo} onListo={() => setEditando(false)} />
-        </section>
+        </Card>
       ) : (
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold text-slate-900">{grupo.nombre}</h1>
+        <header className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="truncate text-2xl font-semibold text-tinta-900">
+              {grupo.nombre}
+            </h1>
             {grupo.descripcion ? (
-              <p className="mt-1 text-slate-600">{grupo.descripcion}</p>
+              <p className="mt-1 text-tinta-600">{grupo.descripcion}</p>
             ) : null}
-            <p className="mt-2 text-sm text-slate-500">
-              Creado por {grupo.creador.nombre} {grupo.creador.apellido}
+            <p className="mt-1.5 text-sm text-tinta-500">
+              {grupo.miembros.length}{' '}
+              {grupo.miembros.length === 1 ? 'integrante' : 'integrantes'} · creado por{' '}
+              {grupo.creador.nombre} {grupo.creador.apellido}
             </p>
           </div>
 
           {esCreador && !confirmando ? (
             <div className="flex shrink-0 gap-2">
-              <Boton variante="secundario" onClick={() => setEditando(true)}>
+              <Boton variante="secundario" tamano="chico" onClick={() => setEditando(true)}>
                 Editar
               </Boton>
-              <Boton variante="secundario" onClick={() => setConfirmando(true)}>
+              <Boton variante="secundario" tamano="chico" onClick={() => setConfirmando(true)}>
                 Eliminar
               </Boton>
             </div>
           ) : null}
-        </div>
+        </header>
       )}
 
       {confirmando ? (
         <ConfirmarEliminar grupo={grupo} onCancelar={() => setConfirmando(false)} />
       ) : null}
 
-      <GestionMiembros grupo={grupo} esCreador={esCreador} />
+      <Pestanas
+        pestanas={[
+          { to: base, texto: 'Resumen', exacta: true },
+          { to: `${base}/gastos`, texto: 'Gastos' },
+          { to: `${base}/pagos`, texto: 'Pagos' },
+          { to: `${base}/balances`, texto: 'Balances' },
+          { to: `${base}/miembros`, texto: 'Miembros', alerta: hayBajasPendientes },
+        ]}
+      />
 
-      <SeccionGastos grupo={grupo} />
-
-      <SeccionBalances grupo={grupo} />
+      <Outlet context={contexto} />
     </div>
   )
 }

@@ -183,6 +183,22 @@ class ParticipanteControllerTest {
     // 5.6 -------------------------------------------------------------------
 
     @Test
+    void buscarPorCi_dosParticipantesConElMismoCi_devuelve200ConAmbos() throws Exception {
+        // `participantes.ci` no es UNIQUE: dos personas pueden compartir CI y la
+        // búsqueda debe devolver las dos, no reventar.
+        long marca = System.nanoTime();
+        registrar("gg-gemelo-" + marca, "secret123", "Gemelo" + marca, "Duplicado" + marca, ci);
+
+        assertThat(participanteRepository.findAllByCi(ci)).hasSize(2);
+
+        mockMvc.perform(get("/api/participantes").param("ci", ci).header("Authorization", bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].ci").value(ci))
+                .andExpect(jsonPath("$[1].ci").value(ci));
+    }
+
+    @Test
     void endpointsParticipantes_sinToken_devuelven401ConFormatoEstandar() throws Exception {
         mockMvc.perform(get("/api/participantes"))
                 .andExpect(status().isUnauthorized())

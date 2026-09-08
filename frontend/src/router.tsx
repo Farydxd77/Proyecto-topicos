@@ -4,7 +4,12 @@ import { RutaProtegida } from './auth/RutaProtegida'
 import { useAuth } from './auth/useAuth'
 import { Layout } from './components/Layout'
 import { GastoDetallePage } from './pages/GastoDetallePage'
-import { GrupoDetallePage } from './pages/GrupoDetallePage'
+import { GrupoBalancesPage } from './pages/GrupoBalancesPage'
+import { GrupoGastosPage } from './pages/GrupoGastosPage'
+import { GrupoLayout } from './pages/GrupoLayout'
+import { GrupoMiembrosPage } from './pages/GrupoMiembrosPage'
+import { GrupoPagosPage } from './pages/GrupoPagosPage'
+import { GrupoResumenPage } from './pages/GrupoResumenPage'
 import { GruposPage } from './pages/GruposPage'
 import { LoginPage } from './pages/LoginPage'
 import { NoEncontradaPage } from './pages/NoEncontradaPage'
@@ -49,8 +54,22 @@ export function Router() {
         <Route element={<Layout />}>
           <Route path="/perfil" element={<PerfilPage />} />
           <Route path="/grupos" element={<GruposPage />} />
-          <Route path="/grupos/:id" element={<GrupoDetallePage />} />
-          <Route path="/grupos/:id/gastos/:gastoId" element={<GastoDetallePage />} />
+
+          {/*
+            El grupo es una sección con pestañas, no una pantalla.
+            El layout consulta el grupo UNA vez y lo comparte por el Outlet: como las
+            pestañas son rutas hijas, cambiar de pestaña no lo desmonta ni lo repide.
+            Y al ser rutas reales, cada pestaña tiene URL propia: se puede compartir,
+            recargar y volver con el botón «atrás».
+          */}
+          <Route path="/grupos/:id" element={<GrupoLayout />}>
+            <Route index element={<GrupoResumenPage />} />
+            <Route path="gastos" element={<GrupoGastosPage />} />
+            <Route path="gastos/:gastoId" element={<GastoDetallePage />} />
+            <Route path="pagos" element={<GrupoPagosPage />} />
+            <Route path="balances" element={<GrupoBalancesPage />} />
+            <Route path="miembros" element={<GrupoMiembrosPage />} />
+          </Route>
         </Route>
       </Route>
 

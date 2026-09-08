@@ -20,6 +20,10 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
+import com.cuentasclaras.backend.repository.BajaGrupoRepository;
+import com.cuentasclaras.backend.repository.GastoParticipanteRepository;
+import com.cuentasclaras.backend.repository.GastoRepository;
+import com.cuentasclaras.backend.repository.PagoRepository;
 import com.cuentasclaras.backend.repository.ParticipanteRepository;
 import com.cuentasclaras.backend.repository.UsuarioRepository;
 
@@ -39,6 +43,14 @@ class GrupoControllerTest {
     private UsuarioRepository usuarioRepository;
     @Autowired
     private ParticipanteRepository participanteRepository;
+    @Autowired
+    private GastoRepository gastoRepository;
+    @Autowired
+    private GastoParticipanteRepository gastoParticipanteRepository;
+    @Autowired
+    private PagoRepository pagoRepository;
+    @Autowired
+    private BajaGrupoRepository bajaRepository;
     @Autowired
     private ObjectMapper objectMapper;
 
@@ -112,6 +124,34 @@ class GrupoControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"participanteId\":%d}".formatted(participanteId)))
                 .andExpect(status().isCreated());
+    }
+
+    private Long registrarGasto(String token, Long grupoId, String descripcion, String monto,
+            Long pagadorId) throws Exception {
+        String body = """
+                {"descripcion":"%s","monto":%s,"moneda":"USDT","pagadorId":%d,"fecha":"2026-09-08"}
+                """.formatted(descripcion, monto, pagadorId);
+        String response = mockMvc.perform(post("/api/grupos/{id}/gastos", grupoId)
+                        .header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        return objectMapper.readTree(response).get("id").asLong();
+    }
+
+    private Long registrarPago(String token, Long grupoId, Long receptorId, String monto)
+            throws Exception {
+        String body = """
+                {"receptorId":%d,"monto":%s,"fecha":"2026-09-08"}
+                """.formatted(receptorId, monto);
+        String response = mockMvc.perform(post("/api/grupos/{id}/pagos", grupoId)
+                        .header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        return objectMapper.readTree(response).get("id").asLong();
     }
 
     // 8.1 Creación ----------------------------------------------------------
@@ -388,6 +428,94 @@ class GrupoControllerTest {
                         .header("Authorization", bearer(creadorToken)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
+    void eliminarGrupo_conGastos_devuelve204YBorraGastosYDivision() throws Exception {
+        Long grupoId = crearGrupo(creadorToken, "Con gastos", null);
+        agregarMiembro(creadorToken, grupoId, participanteIdDe(miembroUsername));
+        Long gastoId = registrarGasto(creadorToken, grupoId, "Cena", "300.00",
+                participanteIdDe(creadorUsername));
+
+        assertThat(gastoParticipanteRepository.findByGastoId(gastoId)).hasSize(2);
+
+        mockMvc.perform(delete("/api/grupos/{id}", grupoId)
+                        .header("Authorization", bearer(creadorToken)))
+                .andExpect(status().isNoContent())
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).isEmpty());
+
+        mockMvc.perform(get("/api/grupos/{id}", grupoId).header("Authorization", bearer(creadorToken)))
+                .andExpect(status().isNotFound());
+
+        assertThat(gastoRepository.findByGrupoIdOrderByFechaDesc(grupoId)).isEmpty();
+        assertThat(gastoParticipanteRepository.findByGastoId(gastoId)).isEmpty();
+    }
+
+    @Test
+    void eliminarGrupo_conPagos_devuelve204YBorraPagos() throws Exception {
+        Long grupoId = crearGrupo(creadorToken, "Con pagos", null);
+        agregarMiembro(creadorToken, grupoId, participanteIdDe(miembroUsername));
+        registrarPago(creadorToken, grupoId, participanteIdDe(miembroUsername), "50.00");
+
+        assertThat(pagoRepository.findByGrupoIdOrderByFechaDesc(grupoId)).hasSize(1);
+
+        mockMvc.perform(delete("/api/grupos/{id}", grupoId)
+                        .header("Authorization", bearer(creadorToken)))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/grupos/{id}", grupoId).header("Authorization", bearer(creadorToken)))
+                .andExpect(status().isNotFound());
+
+        assertThat(pagoRepository.findByGrupoIdOrderByFechaDesc(grupoId)).isEmpty();
+    }
+
+    @Test
+    void eliminarGrupo_conGastosYPagos_devuelve204YLosParticipantesSobreviven() throws Exception {
+        Long grupoId = crearGrupo(creadorToken, "Todo junto", null);
+        Long creadorId = participanteIdDe(creadorUsername);
+        Long miembroId = participanteIdDe(miembroUsername);
+        agregarMiembro(creadorToken, grupoId, miembroId);
+
+        Long gastoId = registrarGasto(creadorToken, grupoId, "Hotel", "400.00", creadorId);
+        registrarPago(miembroToken, grupoId, creadorId, "200.00");
+
+        mockMvc.perform(delete("/api/grupos/{id}", grupoId)
+                        .header("Authorization", bearer(creadorToken)))
+                .andExpect(status().isNoContent());
+
+        assertThat(gastoRepository.findByGrupoIdOrderByFechaDesc(grupoId)).isEmpty();
+        assertThat(gastoParticipanteRepository.findByGastoId(gastoId)).isEmpty();
+        assertThat(pagoRepository.findByGrupoIdOrderByFechaDesc(grupoId)).isEmpty();
+
+        // El borrado del grupo no toca a las personas.
+        assertThat(participanteRepository.findById(creadorId)).isPresent();
+        assertThat(participanteRepository.findById(miembroId)).isPresent();
+    }
+
+    @Test
+    void eliminarGrupo_conBajas_devuelve204YBorraLasBajas() throws Exception {
+        Long grupoId = crearGrupo(creadorToken, "Con bajas", null);
+        Long creadorId = participanteIdDe(creadorUsername);
+        Long miembroId = participanteIdDe(miembroUsername);
+        agregarMiembro(creadorToken, grupoId, miembroId);
+        registrarGasto(creadorToken, grupoId, "Cena", "100.00", creadorId);
+
+        // Sacar al miembro con saldo deja una baja pendiente.
+        mockMvc.perform(delete("/api/grupos/{id}/miembros/{pid}", grupoId, miembroId)
+                        .header("Authorization", bearer(creadorToken)))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(get("/api/grupos/{id}/bajas", grupoId)
+                        .header("Authorization", bearer(creadorToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1));
+
+        mockMvc.perform(delete("/api/grupos/{id}", grupoId)
+                        .header("Authorization", bearer(creadorToken)))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/grupos/{id}", grupoId).header("Authorization", bearer(creadorToken)))
+                .andExpect(status().isNotFound());
+        assertThat(bajaRepository.findByGrupoIdOrderByFechaDesc(grupoId)).isEmpty();
     }
 
     // 8.6 Autenticación -----------------------------------------------------

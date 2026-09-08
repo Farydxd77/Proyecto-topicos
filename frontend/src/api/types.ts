@@ -135,6 +135,15 @@ export interface AgregarMiembroRequest {
 }
 
 /**
+ * TransferirCreadorRequest: participanteId @NotNull.
+ * El destinatario debe ser un miembro actual del grupo distinto del creador; si no,
+ * el backend responde 400.
+ */
+export interface TransferirCreadorRequest {
+  participanteId: number
+}
+
+/**
  * Criterio de búsqueda de participantes.
  *
  * El backend aplica UN SOLO criterio, con precedencia `ci` > `nombre` > `apellido`.
@@ -146,6 +155,15 @@ export type CriterioBusqueda = 'ci' | 'nombre' | 'apellido'
 // --- Gastos ---
 
 /**
+ * Una entrada de la división explícita de un gasto.
+ * peso @NotNull @Min(1) @Max(1000) — las partes que le tocan a ese participante.
+ */
+export interface DivisionParticipanteRequest {
+  participanteId: number
+  peso: number
+}
+
+/**
  * RegistrarGastoRequest / ActualizarGastoRequest (misma forma en el backend).
  *
  * descripcion  @NotBlank @Size(max = 255)
@@ -154,6 +172,10 @@ export type CriterioBusqueda = 'ci' | 'nombre' | 'apellido'
  * monedaNombre opcional @Size(max = 50)
  * pagadorId    @NotNull — debe ser miembro del grupo, si no 400
  * fecha        @NotNull — LocalDate en formato YYYY-MM-DD
+ * division     OPCIONAL — omitirla significa reparto equitativo entre todos los
+ *              miembros. Una lista vacía es 400, no es lo mismo que omitirla.
+ *              Al EDITAR, omitirla no conserva la división anterior: vuelve al
+ *              reparto equitativo.
  */
 export interface RegistrarGastoRequest {
   descripcion: string
@@ -162,14 +184,20 @@ export interface RegistrarGastoRequest {
   monedaNombre?: string
   pagadorId: number
   fecha: string
+  division?: DivisionParticipanteRequest[]
 }
 
 export type ActualizarGastoRequest = RegistrarGastoRequest
 
-/** Lo que le toca a cada integrante. La suma coincide con el montoUsdt del gasto. */
+/**
+ * Lo que le toca a cada participante. La suma coincide con el montoUsdt del gasto.
+ * `peso` son las partes que se le aplicaron al repartir: 1 para todos en un reparto
+ * equitativo. Quien no participó del gasto no aparece en la lista.
+ */
 export interface GastoParticipanteDto {
   participante: ParticipanteDto
   montoAdeudado: number
+  peso: number
 }
 
 /**
@@ -204,12 +232,110 @@ export interface GastoResponse {
   division: GastoParticipanteDto[]
 }
 
+// --- Pagos ---
+
+/**
+ * RegistrarPagoRequest / ActualizarPagoRequest (misma forma en el backend).
+ *
+ * NO lleva `pagadorId`: el backend fija como pagador al participante del token, y
+ * nadie puede registrar un pago a nombre de otro.
+ *
+ * receptorId @NotNull — otro miembro del grupo, distinto del pagador; si no, 400
+ * monto      @NotNull @Positive @Digits(integer = 8, fraction = 2) — siempre USDT
+ * fecha      @NotNull — LocalDate en formato YYYY-MM-DD
+ * txId       opcional @Size(max = 100) — referencia, nunca se verifica
+ */
+export interface RegistrarPagoRequest {
+  receptorId: number
+  monto: string
+  fecha: string
+  txId?: string
+}
+
+export type ActualizarPagoRequest = RegistrarPagoRequest
+
+/** `txId` puede ser null: la columna es nullable y Jackson envía la clave. */
+export interface PagoResponse {
+  id: number
+  grupoId: number
+  pagador: ParticipanteDto
+  receptor: ParticipanteDto
+  monto: number
+  fecha: string
+  txId: string | null
+}
+
+// --- Bajas ---
+
+/**
+ * PENDIENTE: salió con saldo y el creador todavía no decidió. No altera balances.
+ * ASUMIDA: el grupo se hizo cargo; el saldo se repartió entre los miembros actuales.
+ * NO_ASUMIDA: el grupo no se hizo cargo; el saldo queda como tema abierto, sin tocar.
+ */
+export type EstadoBaja = 'PENDIENTE' | 'ASUMIDA' | 'NO_ASUMIDA'
+
+/**
+ * Cuánto le aplica una baja asumida al balance de un participante. Es el delta CON
+ * SIGNO: negativo si el que se fue debía (a este le baja), positivo si le debían.
+ */
+export interface BajaParticipanteDto {
+  participante: ParticipanteDto
+  monto: number
+}
+
+/** `saldo` es el balance congelado al salir: negativo si debía. */
+export interface BajaGrupoDto {
+  id: number
+  grupoId: number
+  participante: ParticipanteDto
+  saldo: number
+  estado: EstadoBaja
+  fecha: string
+  /** Vacío salvo que el estado sea ASUMIDA. */
+  reparto: BajaParticipanteDto[]
+}
+
+/** ResolverBajaRequest: asumir @NotNull. Reservado al creador del grupo. */
+export interface ResolverBajaRequest {
+  asumir: boolean
+}
+
 // --- Balances ---
 
-/** El backend garantiza que la suma de todos los balances sea exactamente 0. */
+/**
+ * El backend garantiza que la suma de todos los balances sea exactamente 0.
+ *
+ * `esMiembroActual` distingue a un integrante del grupo de alguien que salió pero
+ * conserva saldo. Los ex-miembros siguen apareciendo justamente para que esa suma
+ * siga dando cero: su deuda no desaparece porque se hayan ido.
+ */
 export interface BalanceDto {
   participante: ParticipanteDto
   balance: number
+  esMiembroActual: boolean
+}
+
+/**
+ * Totales agregados de un grupo, todos en USDT con 2 decimales.
+ *
+ * OJO con la contabilidad: `totalPagado` NO converge a `totalGastado`, y no debe
+ * hacerlo. Quien paga un gasto cubre su propia parte en ese momento y nunca se
+ * transfiere dinero a sí mismo, así que esa porción jamás aparece como pago. Si Ana
+ * paga 900 entre 3, la deuda hacia ella es 600: con el grupo saldado queda
+ * `totalPagado = 600` y `totalGastado = 900`.
+ *
+ * Lo que sí cierra, y lo que mide el avance, es
+ * `totalPagado + pendientePorSaldar = deuda total del grupo`.
+ */
+export interface ResumenGrupoDto {
+  totalGastado: number
+  totalPagado: number
+  /** Lo que falta transferir para que todos queden a mano. 0 = grupo saldado. */
+  pendientePorSaldar: number
+  /** Lo que le toca adeudar a quien consulta, según la división de cada gasto. */
+  miParte: number
+  cantidadGastos: number
+  cantidadPagos: number
 }
 
 /** Una transferencia de la liquidación mínima. Montos en USDT. */

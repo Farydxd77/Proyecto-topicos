@@ -29,9 +29,7 @@ public class ParticipanteService {
     public List<ParticipanteDto> listar(String ci, String nombre, String apellido) {
         List<Participante> participantes;
         if (StringUtils.hasText(ci)) {
-            participantes = participanteRepository.findByCi(ci)
-                    .map(List::of)
-                    .orElseGet(List::of);
+            participantes = participanteRepository.findAllByCi(ci);
         } else if (StringUtils.hasText(nombre)) {
             participantes = participanteRepository.findByNombreContainingIgnoreCase(nombre);
         } else if (StringUtils.hasText(apellido)) {

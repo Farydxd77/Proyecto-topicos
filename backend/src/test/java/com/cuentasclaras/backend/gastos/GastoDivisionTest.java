@@ -229,4 +229,184 @@ class GastoDivisionTest {
         assertThat(adeudadoDe(editado, pIdC)).isEqualByComparingTo("3.33");
         assertThat(adeudadoDe(editado, pIdA)).isEqualByComparingTo("3.34");
     }
+
+    // 8.2 División personalizada: pesos y exclusión ------------------
+
+    /** Registra un gasto con una `division` explícita, dada como JSON crudo. */
+    private String registrarGastoConDivision(String token, Long grupo, String monto,
+            Long pagadorId, String divisionJson) throws Exception {
+        String body = """
+                {"descripcion":"Gasto","monto":%s,"pagadorId":%d,"fecha":"2026-09-01",
+                 "division":%s}
+                """.formatted(monto, pagadorId, divisionJson);
+        return mockMvc.perform(post("/api/grupos/{id}/gastos", grupo)
+                        .header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+    }
+
+    private Integer pesoDe(JsonNode gasto, Long participanteId) {
+        for (JsonNode e : gasto.get("division")) {
+            if (e.get("participante").get("id").asLong() == participanteId) {
+                return e.get("peso").asInt();
+            }
+        }
+        throw new AssertionError("El participante " + participanteId + " no está en la división");
+    }
+
+    private boolean estaEnDivision(JsonNode gasto, Long participanteId) {
+        for (JsonNode e : gasto.get("division")) {
+            if (e.get("participante").get("id").asLong() == participanteId) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Test
+    void division_ausente_mantieneElRepartoEquitativoConPesoUno() throws Exception {
+        Long grupo = crearGrupo(tokenA, "GD-def-" + marca);
+        agregarMiembro(tokenA, grupo, pIdB);
+        agregarMiembro(tokenA, grupo, pIdC);
+
+        JsonNode gasto = objectMapper.readTree(registrarGasto(tokenA, grupo, "90.00", pIdA));
+
+        assertThat(gasto.get("division")).hasSize(3);
+        assertThat(pesoDe(gasto, pIdA)).isEqualTo(1);
+        assertThat(pesoDe(gasto, pIdB)).isEqualTo(1);
+        assertThat(pesoDe(gasto, pIdC)).isEqualTo(1);
+    }
+
+    @Test
+    void division_pesosDesiguales_repartenProporcionalmente() throws Exception {
+        Long grupo = crearGrupo(tokenA, "GD-pesos-" + marca);
+        agregarMiembro(tokenA, grupo, pIdB);
+
+        JsonNode gasto = objectMapper.readTree(registrarGastoConDivision(
+                tokenA, grupo, "300.00", pIdA,
+                """
+                        [{"participanteId":%d,"peso":2},{"participanteId":%d,"peso":1}]
+                        """.formatted(pIdA, pIdB)));
+
+        assertThat(gasto.get("division")).hasSize(2);
+        assertThat(adeudadoDe(gasto, pIdA)).isEqualByComparingTo("200.00");
+        assertThat(adeudadoDe(gasto, pIdB)).isEqualByComparingTo("100.00");
+        assertThat(pesoDe(gasto, pIdA)).isEqualTo(2);
+        assertThat(pesoDe(gasto, pIdB)).isEqualTo(1);
+        assertThat(sumaDivision(gasto)).isEqualByComparingTo("300.00");
+    }
+
+    @Test
+    void division_excluyeAUnMiembro_noLeAdeudaNada() throws Exception {
+        Long grupo = crearGrupo(tokenA, "GD-excl-" + marca);
+        agregarMiembro(tokenA, grupo, pIdB);
+        agregarMiembro(tokenA, grupo, pIdC);
+
+        JsonNode gasto = objectMapper.readTree(registrarGastoConDivision(
+                tokenA, grupo, "100.00", pIdA,
+                """
+                        [{"participanteId":%d,"peso":1},{"participanteId":%d,"peso":1}]
+                        """.formatted(pIdA, pIdB)));
+
+        assertThat(gasto.get("division")).hasSize(2);
+        assertThat(estaEnDivision(gasto, pIdC)).isFalse();
+        assertThat(adeudadoDe(gasto, pIdA)).isEqualByComparingTo("50.00");
+        assertThat(adeudadoDe(gasto, pIdB)).isEqualByComparingTo("50.00");
+        assertThat(sumaDivision(gasto)).isEqualByComparingTo("100.00");
+    }
+
+    @Test
+    void division_pagadorIncluidoConRedondeo_absorbeElCentavo() throws Exception {
+        Long grupo = crearGrupo(tokenA, "GD-red-" + marca);
+        agregarMiembro(tokenA, grupo, pIdB);
+        agregarMiembro(tokenA, grupo, pIdC);
+
+        JsonNode gasto = objectMapper.readTree(registrarGastoConDivision(
+                tokenA, grupo, "100.00", pIdA,
+                """
+                        [{"participanteId":%d,"peso":1},{"participanteId":%d,"peso":1},
+                         {"participanteId":%d,"peso":1}]
+                        """.formatted(pIdA, pIdB, pIdC)));
+
+        assertThat(adeudadoDe(gasto, pIdB)).isEqualByComparingTo("33.33");
+        assertThat(adeudadoDe(gasto, pIdC)).isEqualByComparingTo("33.33");
+        assertThat(adeudadoDe(gasto, pIdA)).isEqualByComparingTo("33.34");
+        assertThat(sumaDivision(gasto)).isEqualByComparingTo("100.00");
+    }
+
+    @Test
+    void division_pagadorExcluido_elDeMayorPesoAbsorbe() throws Exception {
+        Long grupo = crearGrupo(tokenA, "GD-pagexcl-" + marca);
+        agregarMiembro(tokenA, grupo, pIdB);
+        agregarMiembro(tokenA, grupo, pIdC);
+
+        // Ana paga pero no participa. Pesos 3 y 1 sobre 100.00 → 75.00 / 25.00.
+        JsonNode gasto = objectMapper.readTree(registrarGastoConDivision(
+                tokenA, grupo, "100.00", pIdA,
+                """
+                        [{"participanteId":%d,"peso":3},{"participanteId":%d,"peso":1}]
+                        """.formatted(pIdB, pIdC)));
+
+        assertThat(gasto.get("division")).hasSize(2);
+        assertThat(estaEnDivision(gasto, pIdA)).isFalse();
+        assertThat(adeudadoDe(gasto, pIdB)).isEqualByComparingTo("75.00");
+        assertThat(adeudadoDe(gasto, pIdC)).isEqualByComparingTo("25.00");
+        assertThat(sumaDivision(gasto)).isEqualByComparingTo("100.00");
+    }
+
+    @Test
+    void division_pagadorExcluidoConRedondeo_absorbeElDeMayorPeso() throws Exception {
+        Long grupo = crearGrupo(tokenA, "GD-pagexclr-" + marca);
+        agregarMiembro(tokenA, grupo, pIdB);
+        agregarMiembro(tokenA, grupo, pIdC);
+
+        // 100.00 con pesos 2 y 1 → 33.33 para el de peso 1, y 66.67 para el de peso 2.
+        JsonNode gasto = objectMapper.readTree(registrarGastoConDivision(
+                tokenA, grupo, "100.00", pIdA,
+                """
+                        [{"participanteId":%d,"peso":2},{"participanteId":%d,"peso":1}]
+                        """.formatted(pIdB, pIdC)));
+
+        assertThat(adeudadoDe(gasto, pIdC)).isEqualByComparingTo("33.33");
+        assertThat(adeudadoDe(gasto, pIdB)).isEqualByComparingTo("66.67");
+        assertThat(sumaDivision(gasto)).isEqualByComparingTo("100.00");
+    }
+
+    @Test
+    void division_pagadorExcluidoYPesosIguales_absorbeElDeMenorId() throws Exception {
+        Long grupo = crearGrupo(tokenA, "GD-menorid-" + marca);
+        agregarMiembro(tokenA, grupo, pIdB);
+        agregarMiembro(tokenA, grupo, pIdC);
+
+        Long menorId = Math.min(pIdB, pIdC);
+        Long mayorId = Math.max(pIdB, pIdC);
+
+        // 0.01 entre dos pesos iguales: el no absorbente se lleva 0.01 (HALF_UP sobre
+        // 0.005) y al de menor id, que absorbe, le queda 0.00.
+        JsonNode gasto = objectMapper.readTree(registrarGastoConDivision(
+                tokenA, grupo, "0.01", pIdA,
+                """
+                        [{"participanteId":%d,"peso":1},{"participanteId":%d,"peso":1}]
+                        """.formatted(pIdB, pIdC)));
+
+        assertThat(adeudadoDe(gasto, mayorId)).isEqualByComparingTo("0.01");
+        assertThat(adeudadoDe(gasto, menorId)).isEqualByComparingTo("0.00");
+        assertThat(sumaDivision(gasto)).isEqualByComparingTo("0.01");
+    }
+
+    @Test
+    void division_deUnSoloParticipante_leAdeudaTodo() throws Exception {
+        Long grupo = crearGrupo(tokenA, "GD-uno-" + marca);
+        agregarMiembro(tokenA, grupo, pIdB);
+        agregarMiembro(tokenA, grupo, pIdC);
+
+        JsonNode gasto = objectMapper.readTree(registrarGastoConDivision(
+                tokenA, grupo, "77.77", pIdA,
+                "[{\"participanteId\":%d,\"peso\":5}]".formatted(pIdB)));
+
+        assertThat(gasto.get("division")).hasSize(1);
+        assertThat(adeudadoDe(gasto, pIdB)).isEqualByComparingTo("77.77");
+        assertThat(sumaDivision(gasto)).isEqualByComparingTo("77.77");
+    }
 }

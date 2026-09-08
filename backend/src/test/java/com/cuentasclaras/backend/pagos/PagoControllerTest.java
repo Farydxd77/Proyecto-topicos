@@ -475,6 +475,51 @@ class PagoControllerTest {
 
     // 6. Autenticación --------------------------------------
 
+    // 7. Rango del monto contra la columna DECIMAL(10,2) ------------------
+
+    @Test
+    void registrarPago_montoEnElLimite_devuelve201() throws Exception {
+        mockMvc.perform(post("/api/grupos/{id}/pagos", grupoId)
+                        .header("Authorization", bearer(tokenA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(pagoBody(pIdB, "99999999.99", "2026-09-08")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.monto").value(99999999.99));
+    }
+
+    @Test
+    void registrarPago_montoConNueveEnteros_devuelve400() throws Exception {
+        mockMvc.perform(post("/api/grupos/{id}/pagos", grupoId)
+                        .header("Authorization", bearer(tokenA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(pagoBody(pIdB, "100000000.00", "2026-09-08")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.errors.monto").exists());
+
+        mockMvc.perform(get("/api/grupos/{id}/pagos", grupoId)
+                        .header("Authorization", bearer(tokenA)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void actualizarPago_montoFueraDeRango_devuelve400YNoCambiaElPago() throws Exception {
+        Long pagoId = registrarPago(tokenA, pIdB, "120.00", "2026-09-01");
+
+        mockMvc.perform(put("/api/grupos/{id}/pagos/{pid}", grupoId, pagoId)
+                        .header("Authorization", bearer(tokenA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(pagoBody(pIdB, "100000000.00", "2026-09-01")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+
+        mockMvc.perform(get("/api/grupos/{id}/pagos/{pid}", grupoId, pagoId)
+                        .header("Authorization", bearer(tokenA)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.monto").value(120.00));
+    }
+
     @Test
     void endpointsPagos_sinToken_devuelven401() throws Exception {
         mockMvc.perform(get("/api/grupos/{id}/pagos", grupoId))

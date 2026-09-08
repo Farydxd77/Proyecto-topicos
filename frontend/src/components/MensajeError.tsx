@@ -24,8 +24,8 @@ export function MensajeError({
 
   const estilos =
     tono === 'aviso'
-      ? 'border-amber-300 bg-amber-50 text-amber-800'
-      : 'border-red-300 bg-red-50 text-red-700'
+      ? 'border-aviso-200 bg-aviso-50 text-aviso-900'
+      : 'border-contra-200 bg-contra-50 text-contra-700'
 
   return (
     <p role="alert" className={`rounded-md border px-3 py-2 text-sm ${estilos}`}>

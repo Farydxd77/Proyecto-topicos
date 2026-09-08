@@ -104,6 +104,17 @@
 			<artifactId>spring-security-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<!--
+			Base en memoria para la fase de test: `mvnw test` no necesita Docker ni un
+			PostgreSQL escuchando. La configuración está en
+			src/test/resources/application.properties. Desarrollo y producción siguen
+			usando PostgreSQL 17.
+		-->
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 	<build>
 		<plugins>

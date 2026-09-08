@@ -69,9 +69,14 @@
 | gasto_id        | BIGINT        | FK→gastos.id               |
 | participante_id | BIGINT        | FK→participantes.id        |
 | monto_adeudado  | DECIMAL(10,2) | NOT NULL                   |
+| peso            | INTEGER       | NOT NULL DEFAULT 1         |
 
 > PK compuesta: (gasto_id, participante_id)
-> El pagador absorbe los centavos sobrantes del redondeo.
+> `peso` son las partes que le tocaron a ese participante en el reparto: 1 para
+> todos en un reparto equitativo. Se persiste porque deducirlo de `monto_adeudado`
+> sería ambiguo.
+> Absorbe los centavos sobrantes del redondeo el pagador si participa del gasto;
+> si no participa, el de mayor peso, y a igualdad de peso el de menor id.
 
 ## Tabla: pagos
 | Columna         | Tipo          | Restricciones              |
@@ -88,3 +93,33 @@
 
 > Pagos siempre en USDT. tx_id es el hash de transacción blockchain (opcional, solo referencia).
 > El sistema no verifica la transacción en blockchain.
+## Tabla: bajas_grupo
+| Columna         | Tipo          | Restricciones                          |
+|-----------------|---------------|----------------------------------------|
+| id              | BIGSERIAL     | PK                                     |
+| grupo_id        | BIGINT        | NOT NULL, FK→grupos.id                 |
+| participante_id | BIGINT        | NOT NULL, FK→participantes.id          |
+| saldo           | DECIMAL(10,2) | NOT NULL — en USDT, negativo si debía   |
+| estado          | VARCHAR(20)   | NOT NULL — PENDIENTE/ASUMIDA/NO_ASUMIDA |
+| fecha           | DATE          | NOT NULL                               |
+| created_at      | TIMESTAMP     | NOT NULL                               |
+| updated_at      | TIMESTAMP     | NOT NULL                               |
+
+> Se registra solo cuando quien deja el grupo tiene saldo distinto de cero.
+> `saldo` queda CONGELADO al momento de la baja: el de un ex-miembro todavía puede
+> moverse (un pago hacia él, la edición de un gasto viejo), y el reparto tiene que
+> corresponder con lo que el creador decidió.
+> Solo las bajas ASUMIDA entran en el cálculo de balances.
+
+## Tabla: baja_participantes
+| Columna         | Tipo          | Restricciones                 |
+|-----------------|---------------|-------------------------------|
+| baja_id         | BIGINT        | FK→bajas_grupo.id             |
+| participante_id | BIGINT        | FK→participantes.id           |
+| monto           | DECIMAL(10,2) | NOT NULL — delta CON SIGNO     |
+
+> PK compuesta: (baja_id, participante_id)
+> `monto` es el delta que la baja le aplica al balance de ese participante, ya listo
+> para sumar. Negativo si el que se fue debía (los demás bajan), positivo si le
+> debían a él (los demás suben). La suma de las filas es exactamente el saldo.
+> El reparto queda CONGELADO: quien entra después no absorbe nada.

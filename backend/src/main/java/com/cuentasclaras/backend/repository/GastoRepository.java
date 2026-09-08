@@ -12,4 +12,6 @@ public interface GastoRepository extends JpaRepository<Gasto, Long> {
     List<Gasto> findByGrupoIdOrderByFechaDesc(Long grupoId);
 
     Optional<Gasto> findByIdAndGrupoId(Long id, Long grupoId);
+
+    void deleteByGrupoId(Long grupoId);
 }

@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cuentasclaras.backend.dto.response.BalanceDto;
+import com.cuentasclaras.backend.dto.response.ResumenGrupoDto;
 import com.cuentasclaras.backend.dto.response.TransferenciaDto;
 import com.cuentasclaras.backend.service.BalanceService;
 
@@ -24,6 +25,11 @@ public class BalanceController {
     @GetMapping("/balances")
     public List<BalanceDto> balances(@PathVariable Long grupoId) {
         return balanceService.calcularBalances(grupoId);
+    }
+
+    @GetMapping("/resumen")
+    public ResumenGrupoDto resumen(@PathVariable Long grupoId) {
+        return balanceService.resumen(grupoId);
     }
 
     @GetMapping("/liquidacion")

@@ -7,6 +7,7 @@ import { useAuth } from '../auth/useAuth'
 import { Boton } from '../components/Boton'
 import { Campo } from '../components/Campo'
 import { MensajeError } from '../components/MensajeError'
+ import { PanelDeMarca } from '../components/PanelDeMarca'
 import {
   soloErrores,
   validarApellido,
@@ -58,13 +59,7 @@ export function RegistroPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-8">
-      <div className="w-full max-w-sm">
-        <h1 className="mb-1 text-2xl font-semibold text-slate-900">Crear cuenta</h1>
-        <p className="mb-6 text-sm text-slate-600">
-          Tus datos de participante en Cuentas Claras
-        </p>
-
+    <PanelDeMarca titulo="Crear cuenta" subtitulo="Tus datos de participante en Cuentas Claras">
         <form onSubmit={enviar} noValidate className="flex flex-col gap-4">
           <Campo
             id="username"
@@ -115,18 +110,17 @@ export function RegistroPage() {
             <MensajeError error={mutacion.error} />
           )}
 
-          <Boton type="submit" enCurso={mutacion.isPending}>
+          <Boton type="submit" enCurso={mutacion.isPending} ancho>
             Crear cuenta
           </Boton>
         </form>
 
-        <p className="mt-6 text-center text-sm text-slate-600">
-          ¿Ya tenés cuenta?{' '}
-          <Link to="/login" className="font-medium text-emerald-700 hover:underline">
-            Iniciá sesión
-          </Link>
-        </p>
-      </div>
-    </div>
+      <p className="mt-6 text-center text-sm text-tinta-600">
+        ¿Ya tenés cuenta?{' '}
+        <Link to="/login" className="font-medium text-marca-700 hover:underline">
+          Iniciá sesión
+        </Link>
+      </p>
+    </PanelDeMarca>
   )
 }

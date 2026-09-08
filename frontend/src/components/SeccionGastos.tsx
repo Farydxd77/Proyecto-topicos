@@ -5,11 +5,13 @@ import { listarGastos, registrarGasto } from '../api/gastos'
 import type { GastoResumenDto, GrupoResponse, RegistrarGastoRequest } from '../api/types'
 import { claveGastos, clavesDerivadasDelGrupo } from '../lib/claves'
 import { estadoDe } from '../lib/estadoConsulta'
-import { formatearMonto } from '../lib/formato'
 import { esUsdt } from '../lib/monedas'
 import { Boton } from './Boton'
+import { Card } from './Card'
+import { EstadoVacio } from './EstadoVacio'
 import { FormularioGasto } from './FormularioGasto'
 import { MensajeError } from './MensajeError'
+import { Monto } from './Monto'
 
 /** El monto original es lo que se pagó; el USDT es un cálculo derivado. */
 export function MontoConEquivalente({
@@ -22,15 +24,13 @@ export function MontoConEquivalente({
   montoUsdt: number
 }) {
   return (
-    <span className="whitespace-nowrap">
-      <span className="font-medium text-slate-900">
-        {formatearMonto(monto)} {moneda}
-      </span>
+    <span className="text-right whitespace-nowrap">
+      <Monto valor={monto} moneda={moneda} />
       {/* En USDT las dos cifras son la misma: repetirla haría dudar de si son
           conceptos distintos. */}
       {!esUsdt(moneda) ? (
-        <span className="ml-2 text-sm text-slate-500">
-          ≈ {formatearMonto(montoUsdt)} USDT
+        <span className="block text-xs text-tinta-500">
+          ≈ <Monto valor={montoUsdt} tamano="chico" tono="apagado" />
         </span>
       ) : null}
     </span>
@@ -42,11 +42,11 @@ function FilaGasto({ gasto, grupoId }: { gasto: GastoResumenDto; grupoId: number
     <li>
       <Link
         to={`/grupos/${grupoId}/gastos/${gasto.id}`}
-        className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-slate-200 bg-white p-3 transition hover:border-emerald-400 hover:bg-emerald-50/40"
+        className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-tinta-200 bg-white p-3.5 transition-colors duration-150 hover:border-marca-300 hover:bg-marca-50/40"
       >
         <div className="min-w-0">
-          <p className="truncate font-medium text-slate-900">{gasto.descripcion}</p>
-          <p className="truncate text-sm text-slate-500">
+          <p className="truncate font-medium text-tinta-900">{gasto.descripcion}</p>
+          <p className="truncate text-sm text-tinta-500">
             Pagó {gasto.pagador.nombre} {gasto.pagador.apellido} · {gasto.fecha}
           </p>
         </div>
@@ -83,17 +83,12 @@ export function SeccionGastos({ grupo }: { grupo: GrupoResponse }) {
     },
   })
 
-  return (
-    <section className="rounded-lg border border-slate-200 bg-white p-5">
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <h2 className="font-semibold text-slate-900">Gastos</h2>
-        {!registrando && (estado.datos?.length ?? 0) > 0 ? (
-          <Boton onClick={() => setRegistrando(true)}>Registrar gasto</Boton>
-        ) : null}
-      </div>
+  const hayGastos = (estado.datos?.length ?? 0) > 0
 
+  return (
+    <div className="flex flex-col gap-4">
       {registrando ? (
-        <div className="mb-5 rounded-md border border-slate-200 p-4">
+        <Card titulo="Nuevo gasto">
           <FormularioGasto
             grupo={grupo}
             enCurso={alta.isPending}
@@ -104,41 +99,48 @@ export function SeccionGastos({ grupo }: { grupo: GrupoResponse }) {
               setRegistrando(false)
             }}
           />
-        </div>
+        </Card>
       ) : null}
 
-      {estado.cargando ? (
-        <p className="text-sm text-slate-500">Cargando gastos…</p>
-      ) : null}
+      <Card
+        descripcion={
+          hayGastos ? 'Cada gasto se reparte según su división.' : undefined
+        }
+        accion={
+          !registrando && hayGastos ? (
+            <Boton onClick={() => setRegistrando(true)}>Registrar gasto</Boton>
+          ) : null
+        }
+      >
+        {estado.cargando ? (
+          <p className="text-sm text-tinta-500">Cargando gastos…</p>
+        ) : null}
 
-      {estado.error ? (
-        <div className="flex flex-col items-start gap-2">
-          <MensajeError error={estado.error} />
-          <Boton variante="secundario" onClick={() => consulta.refetch()}>
-            Reintentar
-          </Boton>
-        </div>
-      ) : null}
-
-      {!estado.cargando && !estado.error && (estado.datos?.length ?? 0) === 0 && !registrando ? (
-        <div className="rounded-md border border-dashed border-slate-300 p-6 text-center">
-          <p className="text-slate-900">Todavía no hay gastos en este grupo</p>
-          <p className="mt-1 text-sm text-slate-600">
-            Registrá el primero para empezar a repartir.
-          </p>
-          <div className="mt-3 flex justify-center">
-            <Boton onClick={() => setRegistrando(true)}>Registrar el primer gasto</Boton>
+        {estado.error ? (
+          <div className="flex flex-col items-start gap-2">
+            <MensajeError error={estado.error} />
+            <Boton variante="secundario" onClick={() => consulta.refetch()}>
+              Reintentar
+            </Boton>
           </div>
-        </div>
-      ) : null}
+        ) : null}
 
-      {estado.datos && estado.datos.length > 0 ? (
-        <ul className="flex flex-col gap-2">
-          {estado.datos.map((gasto) => (
-            <FilaGasto key={gasto.id} gasto={gasto} grupoId={grupo.id} />
-          ))}
-        </ul>
-      ) : null}
-    </section>
+        {!estado.cargando && !estado.error && !hayGastos && !registrando ? (
+          <EstadoVacio
+            titulo="Todavía no hay gastos en este grupo"
+            descripcion="Registrá el primero y la aplicación calcula sola cuánto le toca a cada uno."
+            accion={<Boton onClick={() => setRegistrando(true)}>Registrar el primer gasto</Boton>}
+          />
+        ) : null}
+
+        {hayGastos ? (
+          <ul className="flex flex-col gap-2">
+            {estado.datos?.map((gasto) => (
+              <FilaGasto key={gasto.id} gasto={gasto} grupoId={grupo.id} />
+            ))}
+          </ul>
+        ) : null}
+      </Card>
+    </div>
   )
 }

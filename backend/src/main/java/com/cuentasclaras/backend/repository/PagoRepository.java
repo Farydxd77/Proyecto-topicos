@@ -12,4 +12,6 @@ public interface PagoRepository extends JpaRepository<Pago, Long> {
     List<Pago> findByGrupoIdOrderByFechaDesc(Long grupoId);
 
     Optional<Pago> findByIdAndGrupoId(Long id, Long grupoId);
+
+    void deleteByGrupoId(Long grupoId);
 }

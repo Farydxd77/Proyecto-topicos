@@ -24,8 +24,8 @@ const CLAVE_PERFIL = ['perfil']
 
 function Seccion({ titulo, children }: { titulo: string; children: ReactNode }) {
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-5">
-      <h2 className="mb-4 font-semibold text-slate-900">{titulo}</h2>
+    <section className="rounded-lg border border-tinta-200 bg-white p-5">
+      <h2 className="mb-4 font-semibold text-tinta-900">{titulo}</h2>
       {children}
     </section>
   )
@@ -34,7 +34,7 @@ function Seccion({ titulo, children }: { titulo: string; children: ReactNode }) 
 function Exito({ mensaje }: { mensaje: string | null }) {
   if (!mensaje) return null
   return (
-    <p role="status" className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+    <p role="status" className="rounded-md border border-marca-300 bg-marca-50 px-3 py-2 text-sm text-marca-800">
       {mensaje}
     </p>
   )
@@ -47,7 +47,7 @@ export function PerfilPage() {
   const perfil = estado.datos
 
   if (estado.cargando) {
-    return <p className="text-slate-500">Cargando tu perfil…</p>
+    return <p className="text-tinta-500">Cargando tu perfil…</p>
   }
 
   if (estado.error || !perfil) {
@@ -64,8 +64,8 @@ export function PerfilPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Mi perfil</h1>
-        <p className="text-sm text-slate-600">
+        <h1 className="text-2xl font-semibold text-tinta-900">Mi perfil</h1>
+        <p className="text-sm text-tinta-600">
           Cuenta creada el {new Date(perfil!.createdAt).toLocaleDateString('es')}
         </p>
       </div>

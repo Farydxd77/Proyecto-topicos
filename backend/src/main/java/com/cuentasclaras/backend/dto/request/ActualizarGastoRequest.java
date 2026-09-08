@@ -2,7 +2,9 @@ package com.cuentasclaras.backend.dto.request;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -15,5 +17,10 @@ public record ActualizarGastoRequest(
         @Size(max = 10, message = "La moneda admite hasta 10 caracteres") String moneda,
         @Size(max = 50, message = "El nombre de la moneda admite hasta 50 caracteres") String monedaNombre,
         @NotNull(message = "El pagadorId es obligatorio") Long pagadorId,
-        @NotNull(message = "La fecha es obligatoria") LocalDate fecha) {
+        @NotNull(message = "La fecha es obligatoria") LocalDate fecha,
+        /**
+         * División explícita del gasto. Omitirla NO conserva la división anterior:
+         * vuelve al reparto equitativo entre todos los miembros actuales.
+         */
+        @Valid List<DivisionParticipanteRequest> division) {
 }

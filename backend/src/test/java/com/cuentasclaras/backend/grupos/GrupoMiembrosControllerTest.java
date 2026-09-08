@@ -4,6 +4,7 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -14,6 +15,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
@@ -107,6 +109,14 @@ class GrupoMiembrosControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"participanteId\":%d}".formatted(participanteId)))
                 .andExpect(status().isCreated());
+    }
+
+    private ResultActions transferirCreador(String token, Long grupo, Long participanteId)
+            throws Exception {
+        return mockMvc.perform(put("/api/grupos/{id}/creador", grupo)
+                .header("Authorization", bearer(token))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"participanteId\":%d}".formatted(participanteId)));
     }
 
     // 9.1 Alta de miembros --------------------------------------------------
@@ -260,21 +270,172 @@ class GrupoMiembrosControllerTest {
                 .andExpect(jsonPath("$.miembros.length()").value(3));
     }
 
+    // 9.3 Salida voluntaria -------------------------------------------------
+
     @Test
-    void quitarMiembro_miembroIntentaAbandonarElGrupo_devuelve403YSigueSiendoMiembro()
-            throws Exception {
+    void abandonarGrupo_miembroNoCreador_devuelve204YPierdeElGrupo() throws Exception {
         Long miembroId = participanteIdDe(miembroUsername);
         agregarMiembro(creadorToken, grupoId, miembroId);
 
         mockMvc.perform(delete("/api/grupos/{id}/miembros/{participanteId}", grupoId, miembroId)
                         .header("Authorization", bearer(miembroToken)))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(403));
+                .andExpect(status().isNoContent());
 
         mockMvc.perform(get("/api/grupos").header("Authorization", bearer(miembroToken)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].id").value(grupoId));
+                .andExpect(jsonPath("$.length()").value(0));
+
+        mockMvc.perform(get("/api/grupos/{id}", grupoId).header("Authorization", bearer(creadorToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.miembros.length()").value(1));
+    }
+
+    @Test
+    void abandonarGrupo_creador_devuelve400() throws Exception {
+        Long creadorId = participanteIdDe(creadorUsername);
+        agregarMiembro(creadorToken, grupoId, participanteIdDe(miembroUsername));
+
+        mockMvc.perform(delete("/api/grupos/{id}/miembros/{participanteId}", grupoId, creadorId)
+                        .header("Authorization", bearer(creadorToken)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+
+        mockMvc.perform(get("/api/grupos/{id}", grupoId).header("Authorization", bearer(creadorToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.miembros.length()").value(2));
+    }
+
+    @Test
+    void abandonarGrupo_creadorTrasTransferir_devuelve204() throws Exception {
+        Long creadorId = participanteIdDe(creadorUsername);
+        Long miembroId = participanteIdDe(miembroUsername);
+        agregarMiembro(creadorToken, grupoId, miembroId);
+        transferirCreador(creadorToken, grupoId, miembroId).andExpect(status().isOk());
+
+        mockMvc.perform(delete("/api/grupos/{id}/miembros/{participanteId}", grupoId, creadorId)
+                        .header("Authorization", bearer(creadorToken)))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/grupos/{id}", grupoId).header("Authorization", bearer(miembroToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.miembros.length()").value(1));
+    }
+
+    @Test
+    void quitarAOtro_miembroNoCreador_devuelve403() throws Exception {
+        Long miembroId = participanteIdDe(miembroUsername);
+        Long invitadoId = participanteIdDe(invitadoUsername);
+        agregarMiembro(creadorToken, grupoId, miembroId);
+        agregarMiembro(creadorToken, grupoId, invitadoId);
+
+        mockMvc.perform(delete("/api/grupos/{id}/miembros/{participanteId}", grupoId, invitadoId)
+                        .header("Authorization", bearer(miembroToken)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
+
+        mockMvc.perform(get("/api/grupos/{id}", grupoId).header("Authorization", bearer(creadorToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.miembros.length()").value(3));
+    }
+
+    @Test
+    void quitarMiembro_solicitanteNoEsMiembro_devuelve403() throws Exception {
+        Long miembroId = participanteIdDe(miembroUsername);
+        agregarMiembro(creadorToken, grupoId, miembroId);
+        String extranoToken = registrar("gm-extrano-" + System.nanoTime(), "Equis", "Equis",
+                "CI-X" + System.nanoTime());
+
+        mockMvc.perform(delete("/api/grupos/{id}/miembros/{participanteId}", grupoId, miembroId)
+                        .header("Authorization", bearer(extranoToken)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
+    }
+
+    // 9.4 Transferencia del rol de creador ----------------------------------
+
+    @Test
+    void transferirCreador_creador_devuelve200ConNuevoCreador() throws Exception {
+        Long creadorId = participanteIdDe(creadorUsername);
+        Long miembroId = participanteIdDe(miembroUsername);
+        agregarMiembro(creadorToken, grupoId, miembroId);
+
+        transferirCreador(creadorToken, grupoId, miembroId)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.creador.id").value(miembroId))
+                .andExpect(jsonPath("$.miembros.length()").value(2));
+
+        // El creador saliente sigue siendo miembro.
+        mockMvc.perform(get("/api/grupos/{id}", grupoId).header("Authorization", bearer(creadorToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.creador.id").value(miembroId))
+                .andExpect(jsonPath("$.miembros[?(@.id == %d)]".formatted(creadorId)).exists());
+    }
+
+    @Test
+    void transferirCreador_nuevoCreadorEjerceLosPrivilegios() throws Exception {
+        Long miembroId = participanteIdDe(miembroUsername);
+        agregarMiembro(creadorToken, grupoId, miembroId);
+        transferirCreador(creadorToken, grupoId, miembroId).andExpect(status().isOk());
+
+        mockMvc.perform(put("/api/grupos/{id}", grupoId)
+                        .header("Authorization", bearer(miembroToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nombre\":\"Renombrado por el nuevo creador\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nombre").value("Renombrado por el nuevo creador"));
+    }
+
+    @Test
+    void transferirCreador_creadorSalientePierdeLosPrivilegios() throws Exception {
+        Long miembroId = participanteIdDe(miembroUsername);
+        agregarMiembro(creadorToken, grupoId, miembroId);
+        transferirCreador(creadorToken, grupoId, miembroId).andExpect(status().isOk());
+
+        mockMvc.perform(put("/api/grupos/{id}", grupoId)
+                        .header("Authorization", bearer(creadorToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nombre\":\"No deberia poder\"}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
+    }
+
+    @Test
+    void transferirCreador_aNoMiembro_devuelve400() throws Exception {
+        Long invitadoId = participanteIdDe(invitadoUsername);
+
+        transferirCreador(creadorToken, grupoId, invitadoId)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+
+        mockMvc.perform(get("/api/grupos/{id}", grupoId).header("Authorization", bearer(creadorToken)))
+                .andExpect(jsonPath("$.creador.id").value(participanteIdDe(creadorUsername)));
+    }
+
+    @Test
+    void transferirCreador_aSiMismo_devuelve400() throws Exception {
+        transferirCreador(creadorToken, grupoId, participanteIdDe(creadorUsername))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void transferirCreador_miembroNoCreador_devuelve403() throws Exception {
+        Long miembroId = participanteIdDe(miembroUsername);
+        agregarMiembro(creadorToken, grupoId, miembroId);
+
+        transferirCreador(miembroToken, grupoId, miembroId)
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
+
+        mockMvc.perform(get("/api/grupos/{id}", grupoId).header("Authorization", bearer(creadorToken)))
+                .andExpect(jsonPath("$.creador.id").value(participanteIdDe(creadorUsername)));
+    }
+
+    @Test
+    void transferirCreador_grupoInexistente_devuelve404() throws Exception {
+        transferirCreador(creadorToken, 999_999_999L, participanteIdDe(miembroUsername))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
     }
 
     // Autenticación ---------------------------------------------------------

@@ -459,4 +459,132 @@ class GastoControllerTest {
         mockMvc.perform(delete("/api/grupos/{id}/gastos/{gid}", grupoId, 1L))
                 .andExpect(status().isUnauthorized());
     }
+
+    // 7.8 Validación de la división explícita ----------------------------
+
+    private String gastoBodyConDivision(String monto, Long pagadorId, String divisionJson) {
+        return """
+                {"descripcion":"Cena","monto":%s,"pagadorId":%d,"fecha":"2026-09-01",
+                 "division":%s}
+                """.formatted(monto, pagadorId, divisionJson);
+    }
+
+    private void esperar400ConDivision(String divisionJson) throws Exception {
+        mockMvc.perform(post("/api/grupos/{id}/gastos", grupoId)
+                        .header("Authorization", bearer(tokenA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(gastoBodyConDivision("100.00", pIdA, divisionJson)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+
+        // Ningún gasto quedó registrado.
+        mockMvc.perform(get("/api/grupos/{id}/gastos", grupoId)
+                        .header("Authorization", bearer(tokenA)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void registrarGasto_divisionVacia_devuelve400() throws Exception {
+        esperar400ConDivision("[]");
+    }
+
+    @Test
+    void registrarGasto_divisionConParticipanteRepetido_devuelve400() throws Exception {
+        esperar400ConDivision("""
+                [{"participanteId":%d,"peso":1},{"participanteId":%d,"peso":2}]
+                """.formatted(pIdA, pIdA));
+    }
+
+    @Test
+    void registrarGasto_divisionConNoMiembro_devuelve400() throws Exception {
+        esperar400ConDivision("""
+                [{"participanteId":%d,"peso":1},{"participanteId":%d,"peso":1}]
+                """.formatted(pIdA, pIdExtrano));
+    }
+
+    @Test
+    void registrarGasto_divisionConPesoCero_devuelve400() throws Exception {
+        esperar400ConDivision("[{\"participanteId\":%d,\"peso\":0}]".formatted(pIdA));
+    }
+
+    @Test
+    void registrarGasto_divisionConPesoMayorA1000_devuelve400() throws Exception {
+        esperar400ConDivision("[{\"participanteId\":%d,\"peso\":1001}]".formatted(pIdA));
+    }
+
+    @Test
+    void registrarGasto_divisionSinPeso_devuelve400() throws Exception {
+        esperar400ConDivision("[{\"participanteId\":%d}]".formatted(pIdA));
+    }
+
+    // 7.9 Edición de la división -----------------------------------------
+
+    @Test
+    void actualizarGasto_cambiaLaDivision_reemplazaLasFilas() throws Exception {
+        String creado = registrarGasto(tokenA, grupoId, "100.00", pIdA, "2026-09-01");
+        Long gastoId = objectMapper.readTree(creado).get("id").asLong();
+
+        // Pasa de equitativo entre A y B a solo B con todo.
+        String actualizado = mockMvc.perform(put("/api/grupos/{id}/gastos/{gid}", grupoId, gastoId)
+                        .header("Authorization", bearer(tokenA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(gastoBodyConDivision("100.00", pIdA,
+                                "[{\"participanteId\":%d,\"peso\":1}]".formatted(pIdB))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.division.length()").value(1))
+                .andReturn().getResponse().getContentAsString();
+
+        JsonNode division = objectMapper.readTree(actualizado).get("division");
+        assertThat(division.get(0).get("participante").get("id").asLong()).isEqualTo(pIdB);
+        assertThat(new BigDecimal(division.get(0).get("montoAdeudado").asString()))
+                .isEqualByComparingTo("100.00");
+        assertThat(sumaDivision(actualizado)).isEqualByComparingTo("100.00");
+    }
+
+    @Test
+    void actualizarGasto_sinDivision_vuelveAlRepartoEquitativo() throws Exception {
+        // Nace con una división personalizada: solo B.
+        String creado = mockMvc.perform(post("/api/grupos/{id}/gastos", grupoId)
+                        .header("Authorization", bearer(tokenA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(gastoBodyConDivision("100.00", pIdA,
+                                "[{\"participanteId\":%d,\"peso\":1}]".formatted(pIdB))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.division.length()").value(1))
+                .andReturn().getResponse().getContentAsString();
+        Long gastoId = objectMapper.readTree(creado).get("id").asLong();
+
+        // Se edita SIN el campo: no conserva la división anterior, vuelve al default.
+        String actualizado = mockMvc.perform(put("/api/grupos/{id}/gastos/{gid}", grupoId, gastoId)
+                        .header("Authorization", bearer(tokenA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(gastoBody("Cena", "100.00", pIdA, "2026-09-01")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.division.length()").value(2))
+                .andReturn().getResponse().getContentAsString();
+
+        for (JsonNode e : objectMapper.readTree(actualizado).get("division")) {
+            assertThat(e.get("peso").asInt()).isEqualTo(1);
+        }
+        assertThat(sumaDivision(actualizado)).isEqualByComparingTo("100.00");
+    }
+
+    @Test
+    void actualizarGasto_divisionInvalida_devuelve400YNoModificaElGasto() throws Exception {
+        String creado = registrarGasto(tokenA, grupoId, "100.00", pIdA, "2026-09-01");
+        Long gastoId = objectMapper.readTree(creado).get("id").asLong();
+
+        mockMvc.perform(put("/api/grupos/{id}/gastos/{gid}", grupoId, gastoId)
+                        .header("Authorization", bearer(tokenA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(gastoBodyConDivision("100.00", pIdA, "[]")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+
+        mockMvc.perform(get("/api/grupos/{id}/gastos/{gid}", grupoId, gastoId)
+                        .header("Authorization", bearer(tokenA)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.division.length()").value(2));
+    }
 }

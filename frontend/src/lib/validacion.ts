@@ -132,3 +132,52 @@ export function validarFecha(valor: string): string | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(valor)) return 'Ingresá una fecha válida'
   return null
 }
+
+/**
+ * División explícita de un gasto: al menos un participante incluido y cada peso un
+ * entero de 1 a 1000, que es lo que valida el backend con @Min(1) @Max(1000).
+ *
+ * Recibe las partes ya filtradas por «incluido», porque el formulario mantiene a
+ * todos los miembros en pantalla y solo manda los tildados.
+ */
+export function validarDivision(
+  incluidos: { peso: number }[],
+): string | null {
+  if (incluidos.length === 0) {
+    return 'Elegí al menos un participante para el gasto'
+  }
+  if (incluidos.some((p) => !Number.isInteger(p.peso) || p.peso < 1 || p.peso > 1000)) {
+    return 'Las partes deben ser un número entero entre 1 y 1000'
+  }
+  return null
+}
+
+/**
+ * monto de un pago: @NotNull @Positive @Digits(integer = 8, fraction = 2)
+ *
+ * El límite de 8 enteros no es arbitrario: es lo que admite `pagos.monto`, que es
+ * DECIMAL(10,2). Se valida sobre el texto, igual que el monto del gasto.
+ */
+export function validarMontoPago(valor: string): string | null {
+  const limpio = valor.trim()
+  if (limpio.length === 0) return 'El monto es obligatorio'
+  if (!/^\d{1,8}([.,]\d{1,2})?$/.test(limpio)) {
+    return 'Ingresá un monto válido (hasta 8 enteros y 2 decimales)'
+  }
+  if (/^0+([.,]0+)?$/.test(limpio)) return 'El monto debe ser mayor que 0'
+  return null
+}
+
+/** txId del pago: opcional, @Size(max = 100). */
+export function validarTxId(valor: string): string | null {
+  if (valor.trim().length > 100) {
+    return 'El identificador de transacción no puede superar los 100 caracteres'
+  }
+  return null
+}
+
+/** receptorId del pago: @NotNull, y debe ser otro miembro del grupo. */
+export function validarReceptor(receptorId: number): string | null {
+  if (!receptorId) return 'Elegí a quién le pagaste'
+  return null
+}

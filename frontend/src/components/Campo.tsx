@@ -8,6 +8,8 @@ interface CampoProps {
   autoComplete?: string
   soloLectura?: boolean
   ayuda?: string
+  /** Texto de ejemplo dentro del campo. */
+  ejemplo?: string
 }
 
 export function Campo({
@@ -20,13 +22,14 @@ export function Campo({
   autoComplete,
   soloLectura = false,
   ayuda,
+  ejemplo,
 }: CampoProps) {
   const idError = `${id}-error`
   const idAyuda = `${id}-ayuda`
 
   return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-sm font-medium text-slate-700">
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={id} className="text-sm font-medium text-tinta-800">
         {etiqueta}
       </label>
 
@@ -37,23 +40,26 @@ export function Campo({
         onChange={(e) => onChange(e.target.value)}
         readOnly={soloLectura}
         autoComplete={autoComplete}
+        placeholder={ejemplo}
         aria-invalid={error ? true : undefined}
+        // El mensaje queda asociado al campo: un lector de pantalla lo anuncia al
+        // enfocarlo, no solo al llegar visualmente.
         aria-describedby={error ? idError : ayuda ? idAyuda : undefined}
-        className={`rounded-md border px-3 py-2 text-slate-900 outline-none transition focus:ring-2 ${
+        className={`rounded-lg border px-3 py-2 text-tinta-900 transition-colors duration-150 placeholder:text-tinta-400 ${
           soloLectura
-            ? 'border-slate-200 bg-slate-100 text-slate-500'
+            ? 'border-tinta-200 bg-tinta-100 text-tinta-500'
             : error
-              ? 'border-red-400 bg-white focus:ring-red-200'
-              : 'border-slate-300 bg-white focus:border-emerald-500 focus:ring-emerald-200'
+              ? 'border-contra-200 bg-white'
+              : 'border-tinta-300 bg-white hover:border-tinta-400'
         }`}
       />
 
       {error ? (
-        <p id={idError} role="alert" className="text-sm text-red-600">
+        <p id={idError} role="alert" className="text-sm text-contra-700">
           {error}
         </p>
       ) : ayuda ? (
-        <p id={idAyuda} className="text-sm text-slate-500">
+        <p id={idAyuda} className="text-xs text-tinta-500">
           {ayuda}
         </p>
       ) : null}
